@@ -364,7 +364,7 @@ do_one sample
 
 do_one_parallel gyre
 
-do_one adipls
+# do_one adipls
 
 do_one_parallel star
 
