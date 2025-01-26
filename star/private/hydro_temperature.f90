@@ -116,16 +116,18 @@
          d_P_rad_actual_ad = P_rad_m1 - P_rad_00
 
          ! enable flux-limited radiation transport derived by Levermore & Pomraning 1981
-         !s% flux_limit_R(k) = 0d0
+         s% flux_limit_R(k) = 0d0
          if (s% use_flux_limiting_with_dPrad_dm_form) then
             ! calculate the flux ratio R
             flxR = area * abs(T4_m1 - T4_00) / dm_bar / &
                   (kap_face * 0.5d0 * (T4_m1 + T4_00))
 
-            !s% flux_limit_R(k) = flxR%val
+            s% flux_limit_R(k) = flxR%val
 
             ! calculate the flux limiter lambda
             flxLambda = (6d0 + 3d0*flxR) / (6d0 + (3d0 + flxR)*flxR)
+
+            s% flux_limit_lambda(k) = flxLambda%val
 
             ! calculate d_P_rad given the flux limiter
             d_P_rad_expected_ad = d_P_rad_expected_ad / flxLambda
