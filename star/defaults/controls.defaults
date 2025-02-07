@@ -7330,6 +7330,15 @@
     use_starting_composition_for_kap = .false.
 
 
+      ! opacity_min
+      ! ~~~~~~~~~~~
+
+      ! limit minimum opacities to this value (ignore this is value is < 0)
+
+      ! ::
+
+    opacity_min = -1
+
       ! opacity_max
       ! ~~~~~~~~~~~
 
