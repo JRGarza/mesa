@@ -3366,7 +3366,7 @@
       ! max_conv_vel_div_csound
       ! ~~~~~~~~~~~~~~~~~~~~~~~
 
-      ! convective velocities are limited to local sound speed times this factor
+      ! convective velocities are limited to local sound speed times this factor, not used for ``MLT_option = TDC``
 
       ! ::
 

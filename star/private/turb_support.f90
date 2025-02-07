@@ -176,7 +176,7 @@ contains
       integer, intent(out) :: ierr
       
       type(auto_diff_real_star_order1) :: Pr, Pg, grav, Lambda, gradL, beta
-      real(dp) :: conv_vel_start, scale
+      real(dp) :: conv_vel_start, scale, max_conv_vel
 
       ! these are used by use_superad_reduction
       real(dp) :: Gamma_limit, scale_value1, scale_value2, diff_grads_limit, reduction_limit, lambda_limit
@@ -198,6 +198,13 @@ contains
          gradL = grada + gradL_composition_term ! Ledoux temperature gradient
       else
          gradL = grada
+      end if
+
+      ! maximum convection velocity allowed, not available for TDC
+      if (associated(s% csound_face)) then
+         max_conv_vel = s% csound_face(k) * s% max_conv_vel_div_csound
+      else 
+         max_conv_vel = 1.0d99
       end if
 
       ! Initialize with no mixing
@@ -290,7 +297,7 @@ contains
          call set_MLT(MLT_option, mixing_length_alpha, s% Henyey_MLT_nu_param, s% Henyey_MLT_y_param, &
                         chiT, chiRho, Cp, grav, Lambda, rho, P, T, opacity, &
                         gradr, grada, gradL, &
-                        Gamma, gradT, Y_face, conv_vel, D, mixing_type, ierr)
+                        Gamma, gradT, Y_face, conv_vel, D, mixing_type, max_conv_vel, ierr)
 
          if (ierr /= 0) then
             if (s% report_ierr) write(*,*) 'ierr from set_MLT'
@@ -307,7 +314,7 @@ contains
                call set_MLT(MLT_option, mixing_length_alpha, s% Henyey_MLT_nu_param, s% Henyey_MLT_y_param, &
                               chiT, chiRho, Cp, grav, Lambda, rho, P, T, opacity, &
                               gradr_scaled, grada, gradL, &
-                              Gamma, gradT, Y_face, conv_vel, D, mixing_type, ierr)
+                              Gamma, gradT, Y_face, conv_vel, D, mixing_type, max_conv_vel, ierr)
                if (ierr /= 0) then
                   if (s% report_ierr) write(*,*) 'ierr from set_MLT when using superad_reduction'
                   return
