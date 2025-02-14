@@ -9056,8 +9056,6 @@
       !                           as in Davis et al. (1988).
       ! + 'davis+88_optn2'      : :math:`S_L = u_L - a_L` and :math:`S_L = u_R + a_R` 
       !                           as in Davis et al. (1988).
-      ! + 'davis+88_optn3'      : :math:`S_L = - S^+` and :math:`S_R = S^+` where :math:`S_+ = \max(|u_L| + a_L , |u_R| + a_R)`
-      !                           as in Davis et al. (1988), simplified by Toro (2009).
       ! + 'einfeldt+88'         : :math:`S_L = \bar{u} - \bar{d}` and :math:`S_L = \bar{u} + \bar{d}` 
       !                           where :math:`\bar{d}^2 = (\sqrt{\rho_L} a_L^2 + \sqrt{\rho_R} a_L^R) / (\sqrt{\rho_L} + \sqrt{\rho_R}) + \eta (u_R - u_L)^2`
       !                           and :math:`\eta = (\sqrt{\rho_L} \sqrt{\rho_R}) / 2(\sqrt{\rho_L} + \sqrt{\rho_R})^2`
