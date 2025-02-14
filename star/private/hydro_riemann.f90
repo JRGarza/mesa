@@ -304,7 +304,8 @@
             r_ad, A_ad, PL_ad, PR_ad, uL_ad, uR_ad, rhoL_ad, rhoR_ad, &
             gamma1L_ad, gamma1R_ad, csL_ad, csR_ad, G_ad, dPdm_grav_ad, &
             Sl1_ad, Sl2_ad, Sr1_ad, Sr2_ad, numerator_ad, denominator_ad, &
-            Sl_ad, Sr_ad, Ss_ad, P_face_L_ad, P_face_R_ad, du_ad, Uq_ad
+            Sl_ad, Sr_ad, Ss_ad, P_face_L_ad, P_face_R_ad, du_ad, Uq_ad, &
+            Splus1_ad, Splus2_ad, Splus_ad, uavg_ad, davg_ad, eta_ad
          real(dp), dimension(s% species) :: d_Ptot_dxa ! skip this
          logical, parameter :: skip_Peos = .false., skip_mlt_Pturb = .false.
          real(dp) :: delta_m, f
@@ -356,26 +357,56 @@
          delta_m = -0.5d0*s% dm(k-1) ! negative delta_m from right center to edge
          PR_ad = PR_ad + delta_m*dPdm_grav_ad
             
-         ! acoustic wavespeeds (eqn 2.38)
-         Sl1_ad = uL_ad - csL_ad
-         Sl2_ad = uR_ad - csR_ad
+         if (s% hllc_wave_estimates_option == 'davis+88_optn1') then
+            ! Wave estimates by Davis et al. (1988), option 1.
 
-         ! take Sl = min(Sl1, Sl2)
-         if (Sl1_ad%val < Sl2_ad%val) then
-            Sl_ad = Sl1_ad
-         else
-            Sl_ad = Sl2_ad
-         end if
+            ! acoustic wavespeeds (eqn 2.38)
+            Sl1_ad = uL_ad - csL_ad
+            Sl2_ad = uR_ad - csR_ad
 
-         Sr1_ad = uR_ad + csR_ad         
-         Sr2_ad = uL_ad + csL_ad
-         
-         ! take Sr = max(Sr1, Sr2)
-         if (Sr1_ad%val > Sr2_ad%val) then
-            Sr_ad = Sr1_ad
-         else
-            Sr_ad = Sr2_ad
-         end if
+            ! take Sl = min(Sl1, Sl2)
+            if (Sl1_ad%val < Sl2_ad%val) then
+               Sl_ad = Sl1_ad
+            else
+               Sl_ad = Sl2_ad
+            end if
+
+            Sr1_ad = uR_ad + csR_ad         
+            Sr2_ad = uL_ad + csL_ad
+            
+            ! take Sr = max(Sr1, Sr2)
+            if (Sr1_ad%val > Sr2_ad%val) then
+               Sr_ad = Sr1_ad
+            else
+               Sr_ad = Sr2_ad
+            end if
+
+         else if (s% hllc_wave_estimates_option == 'davis+88_optn2') then 
+            ! Wave estimates by Davis et al. (1988), option 1.
+
+            ! acoustic wavespeeds
+            Sl_ad = uL_ad - csL_ad
+            Sr_ad = uR_ad + csR_ad
+
+         else if (s% hllc_wave_estimates_option == 'einfeldt+88') then 
+            ! Wave estimates by Einfeldt et al. (1988), simplified by Toro (2009).
+
+            ! density-weighted average cell velocity (eqn. 5.3c in Einfeldt et al. (1988))
+            uavg_ad = ( sqrt(rhoL_ad) * uL_ad + sqrt(rhoR_ad) * uR_ad) / (sqrt(rhoL_ad) + sqrt(rhoR_ad))
+
+            ! density-weighted average sound speed (eqn. 10.53 in Toro (2009))
+            eta_ad = 0.5d0 *  (sqrt(rhoL_ad) * sqrt(rhoR_ad)) / ((sqrt(rhoL_ad) + sqrt(rhoR_ad)) * (sqrt(rhoL_ad) + sqrt(rhoR_ad)))
+
+            davg_ad = ( sqrt(rhoL_ad) * csL_ad*csL_ad + sqrt(rhoR_ad) * csR_ad*csR_ad) / (sqrt(rhoL_ad) + sqrt(rhoR_ad)) &
+                        + eta_ad * (uR_ad - uL_ad)*(uR_ad - uL_ad)
+            davg_ad = sqrt(davg_ad)
+
+            Sl_ad = uavg_ad - davg_ad
+            Sr_ad = uavg_ad + davg_ad
+            
+         else 
+            call mesa_error(__FILE__,__LINE__,'hllc_wave_estimates_option given is not supported')
+         end if 
          
          ! contact velocity (eqn 2.20)
          numerator_ad = uR_ad*rhoR_ad*(Sr_ad - uR_ad) + uL_ad*rhoL_ad*(uL_ad - Sl_ad) + (PL_ad - PR_ad)         
