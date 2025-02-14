@@ -407,7 +407,7 @@
     RSP2_work_filename, RSP2_map_columns_filename, RSP2_map_filename, RSP2_map_history_filename, RSP2_write_map, &
     RSP2_T_anchor, RSP2_dq_1_factor, RSP2_nz, RSP2_nz_outer, RSP2_nz_div_IBOTOM, RSP2_report_adjust_w, &
     RSP2_w_min_for_damping, RSP2_source_seed, RSP2_w_fix_if_neg, max_X_for_conv_timescale, min_X_for_conv_timescale, &
-    max_q_for_conv_timescale, min_q_for_conv_timescale, max_q_for_QHSE_timescale, min_q_for_QHSE_timescale, &
+    max_q_for_conv_timescale, min_q_for_conv_timescale, max_q_for_QHSE_timescale, min_q_for_QHSE_timescale, hllc_wave_estimates_option, &
     
     
     ! timestep
@@ -1990,6 +1990,8 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% use_Pvsc_art_visc = use_Pvsc_art_visc
  s% Pvsc_cq = Pvsc_cq
  s% Pvsc_zsh = Pvsc_zsh
+
+ s% hllc_wave_estimates_option = hllc_wave_estimates_option
 
  s% min_xa_hard_limit = min_xa_hard_limit
  s% min_xa_hard_limit_for_highT = min_xa_hard_limit_for_highT
@@ -3656,6 +3658,8 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  use_Pvsc_art_visc = s% use_Pvsc_art_visc
  Pvsc_cq = s% Pvsc_cq
  Pvsc_zsh = s% Pvsc_zsh
+
+ hllc_wave_estimates_option = s% hllc_wave_estimates_option
 
  min_xa_hard_limit = s% min_xa_hard_limit
  min_xa_hard_limit_for_highT = s% min_xa_hard_limit_for_highT

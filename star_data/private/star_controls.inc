@@ -967,6 +967,8 @@
          logical :: use_Pvsc_art_visc
          real(dp) :: Pvsc_cq, Pvsc_zsh
 
+         character (len=32) :: hllc_wave_estimates_option
+
          real(dp) :: sig_term_limit, sig_min_factor_for_high_Tcenter, &
             Tcenter_min_for_sig_min_factor_full_on, &
             Tcenter_max_for_sig_min_factor_full_off, &
