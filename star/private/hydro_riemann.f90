@@ -438,6 +438,34 @@
             else
                Sr_ad = Sr2_ad
             end if
+
+         else if (s% hllc_wave_estimates_option == 'aritmetic_average') then 
+            ! Simplified approach for computing average speeds, discussed by Fleischmann et al. (2020)
+
+            uavg_ad = 0.5 * (uL_ad + uR_ad)
+            davg_ad = 0.5 * (csL_ad + csR_ad)
+
+
+            ! acoustic wavespeeds 
+            Sl1_ad = uL_ad - csL_ad
+            Sl2_ad = uavg_ad - davg_ad
+
+            ! take Sl = min(Sl1, Sl2)
+            if (Sl1_ad%val < Sl2_ad%val) then
+               Sl_ad = Sl1_ad
+            else
+               Sl_ad = Sl2_ad
+            end if
+
+            Sr1_ad = uR_ad + csR_ad         
+            Sr2_ad = uavg_ad + davg_ad
+            
+            ! take Sr = max(Sr1, Sr2)
+            if (Sr1_ad%val > Sr2_ad%val) then
+               Sr_ad = Sr1_ad
+            else
+               Sr_ad = Sr2_ad
+            end if
             
          else 
             call mesa_error(__FILE__,__LINE__,'hllc_wave_estimates_option given is not supported')
