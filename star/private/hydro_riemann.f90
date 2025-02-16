@@ -388,7 +388,7 @@
             Sl_ad = uL_ad - csL_ad
             Sr_ad = uR_ad + csR_ad
 
-         else if (s% hllc_wave_estimates_option == 'einfeldt+88') then 
+         else if (s% hllc_wave_estimates_option == 'einfeldt+88_optn1') then 
             ! Wave estimates by Einfeldt et al. (1988), simplified by Toro (2009).
 
             ! density-weighted average cell velocity (eqn. 5.3c in Einfeldt et al. (1988))
@@ -403,6 +403,41 @@
 
             Sl_ad = uavg_ad - davg_ad
             Sr_ad = uavg_ad + davg_ad
+
+          else if (s% hllc_wave_estimates_option == 'einfeldt+88_optn2') then 
+            ! Wave estimates by Fleischmann et al. (2020), blending th approaches by Einfeldt et al. (1988) and
+            ! Davis et al. (1988) (optn 1)
+
+            ! density-weighted average cell velocity (eqn. 5.3c in Einfeldt et al. (1988))
+            uavg_ad = ( sqrt(rhoL_ad) * uL_ad + sqrt(rhoR_ad) * uR_ad) / (sqrt(rhoL_ad) + sqrt(rhoR_ad))
+
+            ! density-weighted average sound speed (eqn. 10.53 in Toro (2009))
+            eta_ad = 0.5d0 *  (sqrt(rhoL_ad) * sqrt(rhoR_ad)) / ((sqrt(rhoL_ad) + sqrt(rhoR_ad)) * (sqrt(rhoL_ad) + sqrt(rhoR_ad)))
+
+            davg_ad = ( sqrt(rhoL_ad) * csL_ad*csL_ad + sqrt(rhoR_ad) * csR_ad*csR_ad) / (sqrt(rhoL_ad) + sqrt(rhoR_ad)) &
+                        + eta_ad * (uR_ad - uL_ad)*(uR_ad - uL_ad)
+            davg_ad = sqrt(davg_ad)
+
+            ! acoustic wavespeeds 
+            Sl1_ad = uL_ad - csL_ad
+            Sl2_ad = uavg_ad - davg_ad
+
+            ! take Sl = min(Sl1, Sl2)
+            if (Sl1_ad%val < Sl2_ad%val) then
+               Sl_ad = Sl1_ad
+            else
+               Sl_ad = Sl2_ad
+            end if
+
+            Sr1_ad = uR_ad + csR_ad         
+            Sr2_ad = uavg_ad + davg_ad
+            
+            ! take Sr = max(Sr1, Sr2)
+            if (Sr1_ad%val > Sr2_ad%val) then
+               Sr_ad = Sr1_ad
+            else
+               Sr_ad = Sr2_ad
+            end if
             
          else 
             call mesa_error(__FILE__,__LINE__,'hllc_wave_estimates_option given is not supported')
