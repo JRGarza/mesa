@@ -442,8 +442,8 @@
          else if (s% hllc_wave_estimates_option == 'aritmetic_average') then 
             ! Simplified approach for computing average speeds, discussed by Fleischmann et al. (2020)
 
-            uavg_ad = 0.5 * (uL_ad + uR_ad)
-            davg_ad = 0.5 * (csL_ad + csR_ad)
+            uavg_ad = 0.5d0 * (uL_ad + uR_ad)
+            davg_ad = 0.5d0 * (csL_ad + csR_ad)
 
 
             ! acoustic wavespeeds 
