@@ -561,9 +561,9 @@ contains
           write(*,2) 'zbar', k, s% zbar(k)
           write(*,*)
           call write_eos_call_info(s,k)
-          call mesa_error(__FILE__,__LINE__,'store_eos_for_cell')
           !$OMP end critical (micro_crit1)
        end if
+       if (s% stop_for_bad_nums) call mesa_error(__FILE__,__LINE__,'store_eos_for_cell')
        ierr = -1
     end if
 
