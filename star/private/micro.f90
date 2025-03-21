@@ -643,17 +643,19 @@ contains
     s% kap_frac_Type2(k) = kap_fracs(i_frac_Type2)
     s% kap_frac_Compton(k) = kap_fracs(i_frac_Compton)
 
-    if (is_bad_num(s% opacity(k)) .or. ierr /= 0) then
-       if (s% report_ierr) then
-          write(*,*) 'do_kap_for_cell: get_kap ierr', ierr
-          !$omp critical (star_kap_get)
-          call show_stuff()
-          if (s% stop_for_bad_nums) call mesa_error(__FILE__,__LINE__,'do_kap_for_cell')
-          !$omp end critical (star_kap_get)
-       end if
-       ierr = -1
-       return
-    end if
+   if (s% opacity_min <= 0 .and. s% opacity_max <= 0 ) then
+      if (is_bad_num(s% opacity(k)) .or. ierr /= 0) then
+         if (s% report_ierr) then
+            write(*,*) 'do_kap_for_cell: get_kap ierr', ierr
+            !$omp critical (star_kap_get)
+            call show_stuff()
+            if (s% stop_for_bad_nums) call mesa_error(__FILE__,__LINE__,'do_kap_for_cell')
+            !$omp end critical (star_kap_get)
+         end if
+         ierr = -1
+         return
+      end if
+   endif
 
     opacity_factor = s% extra_opacity_factor(k)
     if (s% min_logT_for_opacity_factor_off > 0) then
