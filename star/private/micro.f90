@@ -688,7 +688,7 @@ contains
        s% opacity(k) = s% opacity_min
        s% d_opacity_dlnd(k) = 0
        s% d_opacity_dlnT(k) = 0
-    else if (is_bad_num(s% opacity(k)) .and. s% T(k) <= 550 .and. s% opacity_min > 0)
+    else if (is_bad_num(s% opacity(k)) .and. s% T(k) <= 550 .and. s% opacity_min > 0) then
        s% opacity(k) = s% opacity_min
        s% d_opacity_dlnd(k) = 0
        s% d_opacity_dlnT(k) = 0
