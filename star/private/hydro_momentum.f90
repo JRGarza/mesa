@@ -547,11 +547,18 @@
             v00, r_actual, r_expected, dxh_lnR, resid_ad, &
             dr_div_r0_actual, dr_div_r0_expected, dr
          logical :: test_partials, force_zero_v
+         real(dp) :: scal
          include 'formats'
          !test_partials = (k == s% solver_test_partials_k)
          test_partials = .false.
          ierr = 0         
          if (.not. (s% u_flag .or. s% v_flag)) call mesa_error(__FILE__,__LINE__,'must have either v or u for do1_radius_eqn')
+
+         if (s% dlnRdt_eqn_r_scale > 0) then
+            scal = s% dlnRdt_eqn_r_scale
+         else
+            scal = 1.0d0
+         endif
          
          force_zero_v = (s% q(k) > s% velocity_q_upper_bound) .or. &
             (s% lnT_start(k)/ln10 < s% velocity_logT_lower_bound .and. &
@@ -562,7 +569,7 @@
             else
                v00 = wrap_v_00(s,k)
             end if
-            resid_ad = v00/s% csound_start(k)
+            resid_ad = scal*v00/s% csound_start(k)
             call save_eqn_residual_info( &
                s, k, nvar, s% i_dlnR_dt, resid_ad, 'do1_radius_eqn', ierr)           
             return
@@ -578,7 +585,7 @@
          
          v00 = wrap_opt_time_center_v_00(s,k)
          dr_div_r0_expected = v00*s% dt/s% r_start(k)
-         resid_ad = dr_div_r0_expected - dr_div_r0_actual
+         resid_ad = scal*(dr_div_r0_expected - dr_div_r0_actual)
          
          s% equ(s% i_dlnR_dt, k) = resid_ad%val
          

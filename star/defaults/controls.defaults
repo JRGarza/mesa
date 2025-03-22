@@ -9094,7 +9094,16 @@
 
       ! Scale factor for the residual of the momentum equation (only used if u_flag is true). 
       
-      dudt_eqn_r_scale = 1.0d0
+      dudt_eqn_r_scale = -1.0d0
+
+      ! ::
+
+      ! dudt_eqn_r_scale
+      ! ~~~~~~~~~~~~~~~~~
+
+      ! Scale factor for the residual of the radius equation. 
+      
+      dlnRdt_eqn_r_scale = -1.0d0
       
       ! ::
 

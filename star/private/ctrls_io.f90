@@ -343,7 +343,7 @@
     max_abs_rel_change_surf_lnS, &
     max_num_surf_revisions, Gamma_lnS_eps_grav_full_off, Gamma_lnS_eps_grav_full_on, &
     use_dPrad_dm_form_of_T_gradient_eqn, use_flux_limiting_with_dPrad_dm_form, use_gradT_actual_vs_gradT_MLT_for_T_gradient_eqn, dedt_eqn_r_scale, &
-    dudt_eqn_r_scale, RTI_A, RTI_B, RTI_C, RTI_D, RTI_max_alpha, RTI_C_X_factor, RTI_C_X0_frac, steps_before_use_velocity_time_centering, &
+    dudt_eqn_r_scale, dlnRdt_eqn_r_scale, RTI_A, RTI_B, RTI_C, RTI_D, RTI_max_alpha, RTI_C_X_factor, RTI_C_X0_frac, steps_before_use_velocity_time_centering, &
     RTI_dm_for_center_eta_nondecreasing, RTI_min_dm_behind_shock_for_full_on, RTI_energy_floor, &
     RTI_D_mix_floor, RTI_min_m_for_D_mix_floor, RTI_log_max_boost, RTI_m_full_boost, RTI_m_no_boost, &
     include_P_in_velocity_time_centering, include_L_in_velocity_time_centering, &
@@ -1823,6 +1823,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% no_dedt_form_during_relax = no_dedt_form_during_relax
  s% dedt_eqn_r_scale = dedt_eqn_r_scale
  s% dudt_eqn_r_scale = dudt_eqn_r_scale
+ s% dlnRdt_eqn_r_scale = dlnRdt_eqn_r_scale
  s% use_mass_corrections = use_mass_corrections
  s% use_gravity_rotation_correction = use_gravity_rotation_correction
  s% eps_grav_factor = eps_grav_factor
@@ -3492,6 +3493,8 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  no_dedt_form_during_relax = s% no_dedt_form_during_relax
  dedt_eqn_r_scale = s% dedt_eqn_r_scale
  dudt_eqn_r_scale = s% dudt_eqn_r_scale
+ dlnRdt_eqn_r_scale = s% dlnRdt_eqn_r_scale
+
  use_mass_corrections = s% use_mass_corrections
  use_gravity_rotation_correction = s% use_gravity_rotation_correction
  eps_grav_factor = s% eps_grav_factor
