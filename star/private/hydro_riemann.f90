@@ -139,6 +139,7 @@
          ie_plus_ke = s% energy_start(k) + 0.5d0*s% u_start(k)*s% u_start(k)
          scal = dt*max(abs(s% u_start(k)),s% csound_start(k))/ie_plus_ke
          if (k == 1) scal = scal*1d-2
+         if (s% dudt_eqn_r_scale > 0) scal = scal * s% dudt_eqn_r_scale
          
          dudt_actual_ad = 0d0
          dudt_actual_ad%val = s% dxh_u(k)/dt
