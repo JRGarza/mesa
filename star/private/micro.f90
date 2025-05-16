@@ -245,7 +245,6 @@ contains
          call do_neu_for_cell(s,k,ierr)
       else
          call do_clear_neu_for_cell(s,k,ierr)
-         return
       end if
       if (ierr /= 0) return
       if (skip_kap) return
@@ -689,7 +688,7 @@ contains
        s% opacity(k) = s% opacity_min
        s% d_opacity_dlnd(k) = 0
        s% d_opacity_dlnT(k) = 0
-    else if (is_bad_num(s% opacity(k)) .and. s% opacity_min > 0) then
+    else if (is_bad_num(s% opacity(k)) .and. s% T(k) <= 550 .and. s% opacity_min > 0) then
        s% opacity(k) = s% opacity_min
        s% d_opacity_dlnd(k) = 0
        s% d_opacity_dlnT(k) = 0
