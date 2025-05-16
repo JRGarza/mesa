@@ -68,10 +68,17 @@ contains
     call setup_lowT(kap_lowT_z_tables(rq% kap_lowT_option)% ar)
     call setup(kap_z_tables(rq% kap_option)% ar)
     
+    ! For the blending zone limits for the Compton opacities
     rq% logT_Compton_blend_hi = kap_z_tables(rq% kap_option)% ar(1)% x_tables(1)% logT_max - 0.01d0
       !rq% kap_z_tables(1)% x_tables(1)% logT_max - 0.01d0
     rq% logR_Compton_blend_hi = kap_z_tables(rq% kap_option)% ar(1)% x_tables(1)% logR_max - 0.01d0
       !rq% kap_z_tables(1)% x_tables(1)% logR_min + 0.01d0
+
+    if (rq% kap_lowT_option < 8) then
+      ! For the extrapolation of the lowT opacity tables
+      rq% logT_lowT_blend_lo = kap_lowT_z_tables(rq% kap_option)% ar(1)% x_tables(1)% logT_min + 0.1d0
+      rq% logR_lowT_blend_lo = kap_lowT_z_tables(rq% kap_option)% ar(1)% x_tables(1)% logR_min + 0.1d0
+   endif
 
     call init_potekhin(ierr)
 
