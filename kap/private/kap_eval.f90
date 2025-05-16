@@ -122,14 +122,14 @@
 
 
          ! blend to Compton at low R
-         logR_Compton_blend_lo = rq% logR_Compton_blend_lo
-         logR_Compton_blend_hi = logR_Compton_blend_lo + 0.50d0
+         logR_Compton_blend_hi = rq% logR_Compton_blend_hi
+         logR_Compton_blend_lo = logR_Compton_blend_hi - 0.50d0
 
          ! blend in logR
-         if (logR_auto <= logR_Compton_blend_lo) then
+         if (logR_auto >= logR_Compton_blend_hi) then
             blend_logR = 1d0
          else if (logR_auto > logR_Compton_blend_lo .and. logR_auto <= logR_Compton_blend_hi) then
-            blend_logR = (logR_Compton_blend_hi - logR_auto) / (logR_Compton_blend_hi - logR_Compton_blend_lo)
+            blend_logR = (logR_auto - logR_Compton_blend_lo) / (logR_Compton_blend_hi - logR_Compton_blend_lo)
          else
             blend_logR = 0d0
          endif
@@ -138,7 +138,7 @@
 
 
          ! smoothly combine blends
-         blend = 1d0 - (1d0-blend_logT)*(1d0-blend_logR)
+         blend = 1d0 - (1d0-blend_logT)*(1d0-blend_logR) 
          kap_fracs(i_frac_Compton) = blend% val
 
 
