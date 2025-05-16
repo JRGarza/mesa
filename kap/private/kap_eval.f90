@@ -60,6 +60,7 @@
 
          real(dp) :: logT_Compton_blend_lo, logT_Compton_blend_hi
          real(dp) :: logR_Compton_blend_lo, logR_Compton_blend_hi
+         real(dp) :: logT_lowT_blend_lo,logR_lowT_blend_lo,logRho_lowT_blend_lo
 
          real(dp) :: Rho, T
          type(auto_diff_real_2var_order1) :: logT_auto, logRho_auto, logR_auto
@@ -122,14 +123,14 @@
 
 
          ! blend to Compton at low R
-         logR_Compton_blend_lo = rq% logR_Compton_blend_lo
-         logR_Compton_blend_hi = logR_Compton_blend_lo + 0.50d0
+         logR_Compton_blend_hi = rq% logR_Compton_blend_hi
+         logR_Compton_blend_lo = logR_Compton_blend_hi - 0.50d0
 
          ! blend in logR
-         if (logR_auto <= logR_Compton_blend_lo) then
+         if (logR_auto >= logR_Compton_blend_hi) then
             blend_logR = 1d0
          else if (logR_auto > logR_Compton_blend_lo .and. logR_auto <= logR_Compton_blend_hi) then
-            blend_logR = (logR_Compton_blend_hi - logR_auto) / (logR_Compton_blend_hi - logR_Compton_blend_lo)
+            blend_logR = (logR_auto - logR_Compton_blend_lo) / (logR_Compton_blend_hi - logR_Compton_blend_lo)
          else
             blend_logR = 0d0
          endif
@@ -138,7 +139,7 @@
 
 
          ! smoothly combine blends
-         blend = 1d0 - (1d0-blend_logT)*(1d0-blend_logR)
+         blend = 1d0 - (1d0-blend_logT)*(1d0-blend_logR) 
          kap_fracs(i_frac_Compton) = blend% val
 
 
@@ -180,10 +181,43 @@
                   frac_lowT, frac_highT, frac_Type2, &
                   kap_rad, dlnkap_rad_dlnRho, dlnkap_rad_dlnT, ierr)
             else
-               call Get_kap_Results_blend_T( &
+               logT_lowT_blend_lo = rq% logT_lowT_blend_lo
+               logR_lowT_blend_lo = rq% logR_lowT_blend_lo
+               logRho_lowT_blend_lo = logR_lowT_blend_lo - 18.0d0 + 3.0 * logT_lowT_blend_lo
+
+               if (logRho <= logRho_lowT_blend_lo .and. logT <= logT_lowT_blend_lo) then
+                  call Get_kap_Results_blend_T( &
+                  rq, X, Z, XC, XN, XO, XNe, logRho_lowT_blend_lo, logT_lowT_blend_lo, &
+                  frac_lowT, frac_highT, frac_Type2, &
+                  kap_rad, dlnkap_rad_dlnRho, dlnkap_rad_dlnT, ierr)
+
+                  dlnkap_rad_dlnRho = 0d0
+                  dlnkap_rad_dlnT = 0d0
+
+               else if (logRho <= logRho_lowT_blend_lo .and. logT > logT_lowT_blend_lo) then
+                  call Get_kap_Results_blend_T( &
+                  rq, X, Z, XC, XN, XO, XNe, logRho_lowT_blend_lo, logT, &
+                  frac_lowT, frac_highT, frac_Type2, &
+                  kap_rad, dlnkap_rad_dlnRho, dlnkap_rad_dlnT, ierr)
+
+                  dlnkap_rad_dlnRho = 0d0
+
+               else if (logRho > logRho_lowT_blend_lo .and. logT <= logT_lowT_blend_lo) then
+                  call Get_kap_Results_blend_T( &
+                  rq, X, Z, XC, XN, XO, XNe, logRho, logT_lowT_blend_lo, &
+                  frac_lowT, frac_highT, frac_Type2, &
+                  kap_rad, dlnkap_rad_dlnRho, dlnkap_rad_dlnT, ierr)
+
+                  dlnkap_rad_dlnT = 0d0
+
+               else 
+                  call Get_kap_Results_blend_T( &
                   rq, X, Z, XC, XN, XO, XNe, logRho, logT, &
                   frac_lowT, frac_highT, frac_Type2, &
                   kap_rad, dlnkap_rad_dlnRho, dlnkap_rad_dlnT, ierr)
+
+               end if
+
             end if
             if (ierr /= 0) return
 
