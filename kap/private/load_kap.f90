@@ -76,8 +76,8 @@ contains
 
     if (rq% kap_lowT_option < 8) then
       ! For the extrapolation of the lowT opacity tables
-      rq% logT_lowT_blend_lo = kap_lowT_z_tables(rq% kap_option)% ar(1)% x_tables(1)% logT_min + 0.1d0
-      rq% logR_lowT_blend_lo = kap_lowT_z_tables(rq% kap_option)% ar(1)% x_tables(1)% logR_min + 0.1d0
+      rq% logT_lowT_blend_lo = kap_lowT_z_tables(rq% kap_lowT_option)% ar(1)% x_tables(1)% logT_min + 0.1d0
+      rq% logR_lowT_blend_lo = kap_lowT_z_tables(rq% kap_lowT_option)% ar(1)% x_tables(1)% logR_min + 0.1d0
    endif
 
     call init_potekhin(ierr)
