@@ -27,6 +27,14 @@ This will produce a plot file ``kap_plotter.png`` that you can then
 view.  You may need to edit the python file to manually adjust various
 aspects of the plotting (e.g., colorbar limits).
 
+As well, you can plot which tables are used in the plotted parameter
+space by setting plot_regions to true. To plot those regions call
+the following script as::
+
+  ./regions.py
+
+This will produce the plot ``kap_regions.png`` that you can then
+view.
 
 
 
