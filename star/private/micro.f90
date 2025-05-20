@@ -655,6 +655,8 @@ contains
          ierr = -1
          return
       end if
+   else 
+      ierr = 0
    endif
 
     opacity_factor = s% extra_opacity_factor(k)
