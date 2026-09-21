@@ -2,21 +2,18 @@
 !
 !   Copyright (C) 2010  The MESA Team
 !
-!   this file is part of mesa.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   mesa is free software; you can redistribute it and/or modify
-!   it under the terms of the gnu general library public license as published
-!   by the free software foundation; either version 2 of the license, or
-!   (at your option) any later version.
+!   This program is distributed in the hope that it will be useful,
+!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+!   See the GNU Lesser General Public License for more details.
 !
-!   mesa is distributed in the hope that it will be useful,
-!   but without any warranty; without even the implied warranty of
-!   merchantability or fitness for a particular purpose.  see the
-!   gnu library general public license for more details.
-!
-!   you should have received a copy of the gnu library general public license
-!   along with this software; if not, write to the free software
-!   foundation, inc., 59 temple place, suite 330, boston, ma 02111-1307 usa
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
@@ -67,6 +64,29 @@
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
          call test_suite_startup(s, restart, ierr)
+
+         if (restart) then
+            ! Restore controls cycled by extras_check_model after the saved step.
+            select case (MOD(s% model_number/5, 4))
+            case (0)
+               s% atm_T_tau_relation = 'Trampedach_solar'
+            case (1)
+               s% atm_T_tau_relation = 'Eddington'
+            case (2)
+               s% atm_T_tau_relation = 'solar_Hopf'
+            case (3)
+               s% atm_T_tau_relation = 'Krishna_Swamy'
+            end select
+
+            select case (MOD(s% model_number/20, 3))
+            case (0)
+               s% atm_T_tau_opacity = 'varying'
+            case (1)
+               s% atm_T_tau_opacity = 'fixed'
+            case (2)
+               s% atm_T_tau_opacity = 'iterated'
+            end select
+         end if
 
          failed = .false.
 
@@ -152,9 +172,9 @@
                call mesa_error(__FILE__,__LINE__)
             end if
 
-            read(iounit, *, iostat=ierr) row ! M, R, L, ...
-            read(iounit, *, iostat=ierr) row !
-            read(iounit, *, iostat=ierr) row ! ..., Teff, G
+            read(iounit, *, iostat=ierr) row  ! M, R, L, ...
+            read(iounit, *, iostat=ierr) row  !
+            read(iounit, *, iostat=ierr) row  ! ..., Teff, G
 
             Teff = row(4)
 
@@ -326,4 +346,3 @@
       end function q
 
       end module run_star_extras
-

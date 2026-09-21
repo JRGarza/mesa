@@ -2,59 +2,48 @@
 !
 !   Copyright (C) 2013  The MESA Team
 !
-!   this file is part of mesa.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   mesa is free software; you can redistribute it and/or modify
-!   it under the terms of the gnu general library public license as published
-!   by the free software foundation; either version 2 of the license, or
-!   (at your option) any later version.
+!   This program is distributed in the hope that it will be useful,
+!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+!   See the GNU Lesser General Public License for more details.
 !
-!   mesa is distributed in the hope that it will be useful,
-!   but without any warranty; without even the implied warranty of
-!   merchantability or fitness for a particular purpose.  see the
-!   gnu library general public license for more details.
-!
-!   you should have received a copy of the gnu library general public license
-!   along with this software; if not, write to the free software
-!   foundation, inc., 59 temple place, suite 330, boston, ma 02111-1307 usa
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
-
       module adipls_support
 
+      use const_def, only: dp, i8, pi, pi4, four_thirds_pi, Msun, Rsun, Lsun
       use astero_def
       use star_lib
       use star_def
-      use const_def
       use utils_lib
-
 
       implicit none
 
-
       ! args for adipls
-      integer, save :: i_paramset, ierr_param, i_inout, nn
-      real(dp), save, pointer :: x(:) => null() ! (nn)
-      real(dp), save, pointer :: aa(:,:) => null() ! (iaa_arg,nn)
-      real(dp), save :: data(8)
+      integer :: i_paramset, ierr_param, i_inout, nn
+      real(dp), pointer :: x(:) => null()  ! (nn)
+      real(dp), pointer :: aa(:,:) => null()  ! (iaa_arg,nn)
+      real(dp) :: data(8)
 
       integer, parameter :: ivarmd = 6, iaa_arg = 10
+      integer :: iounit_dev_null = -1
+      integer :: nn_redist  ! set from redistrb.c input file
 
-      integer, save :: iounit_dev_null = -1
-
-      integer, save :: nn_redist ! set from redistrb.c input file
-
-
-      real(dp), save, pointer :: x_arg(:) => null(), aa_arg(:,:) => null()
-      integer, save :: nn_arg
-      real(dp), save :: data_arg(8)
+      real(dp), pointer :: x_arg(:) => null(), aa_arg(:,:) => null()
+      integer :: nn_arg
+      real(dp) :: data_arg(8)
 
       logical, parameter :: ADIPLS_IS_ENABLED = .true.
 
-
       contains
-
 
       ! this can be called from user run_star_extras check model routine
       subroutine do_adipls_get_one_el_info( &
@@ -136,28 +125,28 @@
 
          if (.not. associated(l_order)) then
             allocate(l_order(num_results))
-         else if (num_results >= size(l_order,dim=1)) then ! enlarge
+         else if (num_results >= size(l_order,dim=1)) then  ! enlarge
             call realloc_integer(l_order,num_results,ierr)
             if (ierr /= 0) return
          end if
 
          if (.not. associated(l_em)) then
             allocate(l_em(num_results))
-         else if (num_results >= size(l_em,dim=1)) then ! enlarge
+         else if (num_results >= size(l_em,dim=1)) then  ! enlarge
             call realloc_integer(l_em,num_results,ierr)
             if (ierr /= 0) return
          end if
 
          if (.not. associated(l_freq)) then
             allocate(l_freq(num_results))
-         else if (num_results >= size(l_freq,dim=1)) then ! enlarge
+         else if (num_results >= size(l_freq,dim=1)) then  ! enlarge
             call realloc_double(l_freq,num_results,ierr)
             if (ierr /= 0) return
          end if
 
          if (.not. associated(l_inertia)) then
             allocate(l_inertia(num_results))
-         else if (num_results >= size(l_inertia,dim=1)) then ! enlarge
+         else if (num_results >= size(l_inertia,dim=1)) then  ! enlarge
             call realloc_double(l_inertia,num_results,ierr)
             if (ierr /= 0) return
          end if
@@ -237,8 +226,8 @@
 
          integer :: iriche, iturpr
          integer :: iconst, ivar, ivers, nn_in
-         real(dp), allocatable :: global_data(:) ! (iconst)
-         real(dp), allocatable :: point_data(:,:) ! (ivar,nn_in)
+         real(dp), allocatable :: global_data(:)  ! (iconst)
+         real(dp), allocatable :: point_data(:,:)  ! (ivar,nn_in)
          character (len=2000) :: format_string, num_string, filename
 
          ierr = 0
@@ -285,7 +274,7 @@
          ivar = SIZE(point_data, 1)
          nn_in = SIZE(point_data, 2)
 
-         ivers = 0 ! It's not clear what this does in fgong_amdl
+         ivers = 0  ! It's not clear what this does in fgong_amdl
 
          call fgong_amdl(cgrav, nn_in, iconst, ivar, ivers, global_data, point_data, data, aa, nn, ierr)
          deallocate(global_data, point_data)
@@ -319,7 +308,7 @@
             include 'formats'
             ierr = 0
             if (.not. do_redistribute_mesh) return
-            nn_new = nn_redist ! srdist uses nn from input file
+            nn_new = nn_redist  ! srdist uses nn from input file
             allocate(aa_new(iaa_arg,nn_new), x_new(nn_new))
             ierr_param = 0
             !write(*,2) 'call srdist: nn_redist', nn_new
@@ -350,7 +339,7 @@
          integer, intent(out) :: ierr
 
          integer :: iounit, nn_arg_0
-         integer(8) :: time0, time1, clock_rate
+         integer(i8) :: time0, time1, clock_rate
          real(dp) :: time, x_arg0(0), aa_arg0(0,0)
          character (len=256) :: filename
          common/cstdio/ istdin, istdou, istdpr, istder
@@ -426,8 +415,8 @@
 
          contains
 
-
          subroutine setup_adipls
+            use adipls_callbacks, only: spcout_adi_ptr
             iounit = alloc_iounit(ierr)
             if (ierr /= 0) then
                write(*,*) 'setup_adipls failed in alloc_iounit'
@@ -456,6 +445,9 @@
             call setups_adi
             nn_arg_0 = 0
             istdin = iounit
+
+            spcout_adi_ptr => spcout_adi
+
             call adipls(i_paramset, ierr_param, i_inout, &
                   x_arg0, aa_arg0, data_arg, nn_arg_0, ivarmd, iaa_arg)
             close(iounit)
@@ -473,6 +465,48 @@
 
          end subroutine setup_adipls
 
+         subroutine spcout_adi(x, y, aa, data, nn, iy, iaa, ispcpr)
+            ! must set ispcpr > 0 to get this called
+            use astero_def, only: store_new_oscillation_results, &
+               el, order, em, cyclic_freq, inertia, num_results
+            use const_def, only: dp, pi4
+            use utils_lib, only: mesa_error
+
+            implicit none
+
+            integer :: nn, iy, iaa, ispcpr
+            real(dp) :: x(1:nn), y(1:iy,1:nn), aa(1:iaa,1:nn), data(8)
+
+            !  common for storage of model parameters
+            !  degree, order, cyclic frequency (microHz), inertia
+            common/cobs_param/ icobs_st, nobs_st, obs_st
+            real(dp) :: csummm(50)
+            common/csumma/ csummm
+
+            integer :: icobs_st, nobs_st
+            real(dp) :: obs_st(10,100000)  ! huge 2nd dimension to satisfy bounds checking
+
+            integer :: ierr, new_el, new_order, new_em, n
+            real(dp) :: new_inertia, new_cyclic_freq
+
+            include 'formats'
+
+            new_el = int(obs_st(1,nobs_st) + 0.5_dp)
+            new_order = int(obs_st(2,nobs_st) + 0.5_dp)
+            new_em = csummm(38)
+            new_inertia = obs_st(4,nobs_st)*pi4
+            new_cyclic_freq = obs_st(3,nobs_st)
+
+            call store_new_oscillation_results( &
+               new_el, new_order, new_em, new_inertia, new_cyclic_freq, 0._dp, ierr)
+            if (ierr /= 0) call mesa_error(__FILE__,__LINE__)
+
+            n = num_results
+            call adipls_mode_info( &
+               el(n), order(n), em(n), cyclic_freq(n), inertia(n), &
+               x, y, aa, data, nn, iy, iaa, ispcpr)
+
+         end subroutine spcout_adi
 
          subroutine setup_redist
 
@@ -668,10 +702,10 @@
          real(dp), intent(in) :: cgrav
          character (len=64) :: fname
          integer :: nn, nn_in, iconst, ivar, ivers, ierr
-         real(dp), pointer :: glob(:) ! (iconst)   will be allocated
-         real(dp), pointer :: var(:,:) ! (ivar,nn_in)   will be allocated
-         real(dp), pointer :: aa(:,:) ! (iaa_arg,nn)   will be allocated
-         real(dp), pointer :: x(:) ! (nn)   will be allocated
+         real(dp), pointer :: glob(:)  ! (iconst)   will be allocated
+         real(dp), pointer :: var(:,:)  ! (ivar,nn_in)   will be allocated
+         real(dp), pointer :: aa(:,:)  ! (iaa_arg,nn)   will be allocated
+         real(dp), pointer :: x(:)  ! (nn)   will be allocated
          real(dp) :: data(8)
 
          ierr = 0
@@ -702,7 +736,7 @@
          integer, intent(inout) :: iturpr
          real(dp), intent(in) :: data(8)
          real(dp), pointer :: aa(:,:)
-         real(dp), pointer :: x(:) ! (nn)     will be allocated
+         real(dp), pointer :: x(:)  ! (nn)     will be allocated
          ! nn can be less than nn_in
          integer, intent(out) :: nn, ierr
 
@@ -788,10 +822,10 @@
 
          if (iturpr == 1) then
             do n=1,nn
-               if (x(n) < 0.999) then
+               if (x(n) < 0.999d0) then
                   ggt=1
                else
-                  ggt=1./(x(n)*x(n)*x(n)*aa(1,n))
+                  ggt=1.0d0/(x(n)*x(n)*x(n)*aa(1,n))
                end if
                aa(10,n)=ggt
             end do
@@ -817,14 +851,14 @@
          ! derived from fgong-amdl.d.f
          real(dp), intent(in) :: cgrav
          integer, intent(in) :: nn_in, iconst, ivar, ivers
-         real(dp), intent(inout) :: glob(:) ! (iconst)
-         real(dp), intent(inout) :: var(:,:) ! (ivar,nn_in)
+         real(dp), intent(inout) :: glob(:)  ! (iconst)
+         real(dp), intent(inout) :: var(:,:)  ! (ivar,nn_in)
          real(dp), intent(inout) :: data(8)
-         real(dp), pointer :: aa(:,:) ! (iaa_arg,nn)   will be allocated
+         real(dp), pointer :: aa(:,:)  ! (iaa_arg,nn)   will be allocated
          integer, intent(out) :: nn, ierr
 
          integer, parameter :: ireset(16) = &
-            (/3,4,5,6,8,9,10,11,12,13,14,16,17,18,19,20/)
+            [3,4,5,6,8,9,10,11,12,13,14,16,17,18,19,20]
          integer :: nn1, i, n, ir
          real(dp) :: d2amax, var1(ivar,nn_in+100), q(nn_in+100), x(nn_in+100)
 
@@ -922,8 +956,8 @@
       subroutine read_fgong_file(fin, nn, iconst, ivar, ivers, glob, var, ierr)
          character (len=*), intent(in) :: fin
          integer, intent(out) :: nn, iconst, ivar, ivers
-         real(dp), pointer :: glob(:) ! (iconst)   will be allocated
-         real(dp), pointer :: var(:,:) ! (ivar,nn)   will be allocated
+         real(dp), pointer :: glob(:)  ! (iconst)   will be allocated
+         real(dp), pointer :: var(:,:)  ! (ivar,nn)   will be allocated
          integer, intent(out) :: ierr
 
          integer :: ios, iounit, i, n
@@ -986,11 +1020,10 @@
       subroutine dump(filename_for_dump,nn,glob,var,ierr)
          character (len=*), intent(in) :: filename_for_dump
          integer, intent(in) :: nn
-         real(dp), pointer :: glob(:) ! (iconst)
-         real(dp), pointer :: var(:,:) ! (ivar,nn)
+         real(dp), pointer :: glob(:)  ! (iconst)
+         real(dp), pointer :: var(:,:)  ! (ivar,nn)
          integer, intent(out) :: ierr
 
-         real(dp), parameter :: Msun = 1.9892d33, Rsun = 6.9598d10, Lsun = 3.8418d33
          integer :: iounit, k, offset
 
          ierr = 0
@@ -1010,7 +1043,7 @@
 
          write(*,*) 'dump fgong data to ' // trim(filename_for_dump)
 
-         if (VAR(1,1) <= 1) then ! skip tny r
+         if (VAR(1,1) <= 1) then  ! skip tny r
             offset = 1
          else
             offset = 0
@@ -1079,6 +1112,5 @@
          end do
          write(*,'(A)')
       end subroutine show_adipls_results
-
 
       end module adipls_support

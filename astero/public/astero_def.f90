@@ -1,32 +1,26 @@
 ! ***********************************************************************
 !
-!   Copyright (C) 2020  Bill Paxton and The MESA Team
+!   Copyright (C) 2020  Bill Paxton & The MESA Team
 !
-!   MESA is free software; you can use it and/or modify
-!   it under the combined terms and restrictions of the MESA MANIFESTO
-!   and the GNU General Library Public License as published
-!   by the Free Software Foundation; either version 2 of the License,
-!   or (at your option) any later version.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   You should have received a copy of the MESA MANIFESTO along with
-!   this software; if not, it is available at the mesa website:
-!   http://mesa.sourceforge.net/
-!
-!   MESA is distributed in the hope that it will be useful,
+!   This program is distributed in the hope that it will be useful,
 !   but WITHOUT ANY WARRANTY; without even the implied warranty of
 !   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-!   See the GNU Library General Public License for more details.
+!   See the GNU Lesser General Public License for more details.
 !
-!   You should have received a copy of the GNU Library General Public License
-!   along with this software; if not, write to the Free Software
-!   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
       module astero_def
       use star_lib
       use star_def
-      use const_def
+      use const_def, only: dp, strlen
       use math_lib
       use utils_lib
       use star_pgstar
@@ -73,7 +67,7 @@
 
       end type astero_info
 
-      type (astero_info), save :: astero_other_procs
+      type (astero_info) :: astero_other_procs
 
       logical :: use_other_after_get_chi2 = .false.
       logical :: use_other_adipls_mode_info = .false.
@@ -111,7 +105,7 @@
 
       ! spectro (non-seismic) constraints
       integer, parameter :: max_constraints = 100
-      integer :: num_constraints ! how many are actually used
+      integer :: num_constraints  ! how many are actually used
 
       logical :: include_constraint_in_chi2_spectro(max_constraints)
       real(dp) :: constraint_target(max_constraints)
@@ -122,7 +116,7 @@
 
       real(dp) :: Z_div_X_solar
 
-      integer, parameter :: max_nl = 1000 ! increase this if necessary
+      integer, parameter :: max_nl = 1000  ! increase this if necessary
 
       ! observed modes to match to model
       integer  :: nl(0:3)
@@ -138,10 +132,10 @@
       real(dp) :: min_age_for_chi2, max_age_for_chi2
 
       character (len=256) :: newuoa_output_filename
-      real(dp) :: newuoa_rhoend ! search control for newuoa
+      real(dp) :: newuoa_rhoend  ! search control for newuoa
 
       character (len=256) :: bobyqa_output_filename
-      real(dp) :: bobyqa_rhoend ! search control for bobyqa
+      real(dp) :: bobyqa_rhoend  ! search control for bobyqa
 
       character (len=256) :: simplex_output_filename
       integer :: simplex_itermax, &
@@ -270,10 +264,10 @@
       logical :: do_redistribute_mesh
       ! note: number of zones for redistribute is set in the redistrb.c input file
 
-      integer :: iscan_factor(0:3) ! iscan for adipls = this factor times expected number of modes
+      integer :: iscan_factor(0:3)  ! iscan for adipls = this factor times expected number of modes
       real(dp) :: nu_lower_factor, nu_upper_factor
          ! frequency range for adipls is set from observed frequencies times these
-      integer :: & ! misc adipls parameters
+      integer :: &  ! misc adipls parameters
          adipls_irotkr, adipls_nprtkr, adipls_igm1kr, adipls_npgmkr
 
       logical, dimension(max_extra_inlists) :: read_extra_astero_search_inlist
@@ -476,7 +470,6 @@
          read_extra_astero_pgstar_inlist, extra_astero_pgstar_inlist_name
 
 
-
       ! private data
 
 
@@ -544,8 +537,7 @@
          best_surf_coef2, &
          best_constraint_value(max_constraints)
 
-      integer :: &
-         best_model_number
+      integer :: best_model_number
 
       integer  :: best_order(0:3,max_nl)
       real(dp) :: best_freq(0:3,max_nl)
@@ -627,7 +619,7 @@
             use const_def, only: dp, strlen
             implicit none
             integer, intent(in) :: id
-            character(len=strlen), intent(in) :: name ! which param to set
+            character(len=strlen), intent(in) :: name  ! which param to set
             real(dp), intent(in) :: val
             integer, intent(out) :: ierr
          end subroutine set_param_interface
@@ -658,8 +650,7 @@
             data_for_extra_profile_columns
       end type astero_procs
 
-      type (astero_procs), target, save :: star_astero_procs
-         ! gfortran seems to require "save" here.  at least it did once upon a time.
+      type (astero_procs), target :: star_astero_procs
 
       contains
 
@@ -676,7 +667,6 @@
          star_astero_procs% how_many_extra_profile_columns => null()
          star_astero_procs% data_for_extra_profile_columns => null()
       end subroutine init_astero_def
-
 
 
       subroutine store_new_oscillation_results( &
@@ -698,7 +688,7 @@
          if (.not. associated(growth_rate)) allocate(growth_rate(n))
          if (.not. associated(inertia)) allocate(inertia(n))
 
-         if (num_results >= size(el,dim=1)) then ! enlarge
+         if (num_results >= size(el,dim=1)) then  ! enlarge
             call realloc_integer(el,n,ierr)
             if (ierr /= 0) call mesa_error(__FILE__,__LINE__)
             call realloc_integer(order,n,ierr)
@@ -849,73 +839,42 @@
 
 
       subroutine read_astero_search_controls(filename, ierr)
+         use utils_namelist, only: read_namelist, missing_namelist_error
          character (len=*), intent(in) :: filename
          integer, intent(out) :: ierr
+
          ! initialize controls to default values
          include 'astero_search.defaults'
-         ierr = 0
-         call read1_astero_search_inlist(filename, 1, ierr)
+
+         call read_namelist(filename, read_astero_search_file, "astero_search_controls", ierr, missing_namelist_error)
       end subroutine read_astero_search_controls
 
+      subroutine read_astero_search_file(unit, iostat, iomsg, extra_inlists, extra_inlists_mask)
+         use const_def, only: strlen
+         use utils_namelist, only: max_extra_inlists
 
-      recursive subroutine read1_astero_search_inlist(filename, level, ierr)
-         character (len=*), intent(in) :: filename
-         integer, intent(in) :: level
-         integer, intent(out) :: ierr
+         integer, intent(in) :: unit
+         integer, intent(out) :: iostat
+         character(len=strlen), intent(out) :: iomsg
+         character(len=strlen), dimension(max_extra_inlists), intent(out) :: extra_inlists
+         logical, dimension(max_extra_inlists), intent(out) :: extra_inlists_mask
 
-         logical, dimension(max_extra_inlists) :: read_extra
-         character (len=strlen) :: message
-         character (len=strlen), dimension(max_extra_inlists) :: extra
-         integer :: unit, i
+         integer :: i
 
-         if (level >= 10) then
-            write(*,*) 'ERROR: too many levels of nested extra star_job inlist files'
-            ierr = -1
+         read_extra_astero_search_inlist(:) = .false.
+
+         read(unit, nml=astero_search_controls, iostat=iostat, iomsg=iomsg)
+
+         if (iostat /= 0) then
             return
          end if
 
-         ierr = 0
-         unit=alloc_iounit(ierr)
-         if (ierr /= 0) return
-
-         open(unit=unit, file=trim(filename), action='read', delim='quote', iostat=ierr)
-         if (ierr /= 0) then
-            write(*, *) 'Failed to open astero search inlist file ', trim(filename)
-         else
-            read(unit, nml=astero_search_controls, iostat=ierr)
-            close(unit)
-            if (ierr /= 0) then
-               write(*, *) &
-                  'Failed while trying to read astero search inlist file ', trim(filename)
-               write(*, '(a)') trim(message)
-               write(*, '(a)') &
-                  'The following runtime error message might help you find the problem'
-               write(*, *)
-               open(unit=unit, file=trim(filename), &
-                  action='read', delim='quote', status='old', iostat=ierr)
-               read(unit, nml=astero_search_controls)
-               close(unit)
-            end if
-         end if
-         call free_iounit(unit)
-         if (ierr /= 0) return
-
-         ! recursive calls to read other inlists
          do i=1, max_extra_inlists
-            read_extra(i) = read_extra_astero_search_inlist(i)
-            read_extra_astero_search_inlist(i) = .false.
-            extra(i) = extra_astero_search_inlist_name(i)
-            extra_astero_search_inlist_name(i) = 'undefined'
-
-            if (read_extra(i)) then
-               call read1_astero_search_inlist(extra(i), level+1, ierr)
-               if (ierr /= 0) return
-            end if
+            extra_inlists(i) = extra_astero_search_inlist_name(i)
+            extra_inlists_mask(i) = read_extra_astero_search_inlist(i)
          end do
 
-
-      end subroutine read1_astero_search_inlist
-
+      end subroutine read_astero_search_file
 
       subroutine write_astero_search_controls(filename_in, ierr)
          use utils_lib
@@ -948,75 +907,43 @@
 
       end subroutine write_astero_search_controls
 
-
       subroutine read_astero_pgstar_controls(filename, ierr)
+         use utils_namelist, only: read_namelist, missing_namelist_error
          character (len=*), intent(in) :: filename
          integer, intent(out) :: ierr
 
          ! initialize controls to default values
          include 'astero_pgstar.defaults'
 
-         ierr = 0
-         call read1_astero_pgstar_inlist(filename, 1, ierr)
-
+         call read_namelist(filename, read_astero_pgstar_file, "astero_pgstar_controls", ierr, missing_namelist_error)
       end subroutine read_astero_pgstar_controls
 
+      subroutine read_astero_pgstar_file(unit, iostat, iomsg, extra_inlists, extra_inlists_mask)
+         use const_def, only: strlen
+         use utils_namelist, only: max_extra_inlists
 
-      recursive subroutine read1_astero_pgstar_inlist(filename, level, ierr)
-         character (len=*), intent(in) :: filename
-         integer, intent(in) :: level
-         integer, intent(out) :: ierr
+         integer, intent(in) :: unit
+         integer, intent(out) :: iostat
+         character(len=strlen), intent(out) :: iomsg
+         character(len=strlen), dimension(max_extra_inlists), intent(out) :: extra_inlists
+         logical, dimension(max_extra_inlists), intent(out) :: extra_inlists_mask
 
-         logical, dimension(max_extra_inlists) :: read_extra
-         character (len=strlen), dimension(max_extra_inlists) :: extra
-         integer :: unit, i
+         integer :: i
 
-         if (level >= 10) then
-            write(*,*) 'ERROR: too many levels of nested extra star_job inlist files'
-            ierr = -1
+         read_extra_astero_pgstar_inlist(:) = .false.
+
+         read(unit, nml=astero_pgstar_controls, iostat=iostat, iomsg=iomsg)
+
+         if (iostat /= 0) then
             return
          end if
 
-         ierr = 0
-         unit=alloc_iounit(ierr)
-         if (ierr /= 0) return
-
-         open(unit=unit, file=trim(filename), action='read', delim='quote', iostat=ierr)
-         if (ierr /= 0) then
-            write(*, *) 'Failed to open astero pgstar inlist file ', trim(filename)
-         else
-            read(unit, nml=astero_pgstar_controls, iostat=ierr)
-            close(unit)
-            if (ierr /= 0) then
-               write(*, *) &
-                  'Failed while trying to read astero pgstar inlist file ', trim(filename)
-               write(*, '(a)') &
-                  'The following runtime error message might help you find the problem'
-               write(*, *)
-               open(unit=unit, file=trim(filename), &
-                  action='read', delim='quote', status='old', iostat=ierr)
-               read(unit, nml=astero_pgstar_controls)
-               close(unit)
-            end if
-         end if
-         call free_iounit(unit)
-         if (ierr /= 0) return
-
-                  ! recursive calls to read other inlists
          do i=1, max_extra_inlists
-            read_extra(i) = read_extra_astero_pgstar_inlist(i)
-            read_extra_astero_pgstar_inlist(i) = .false.
-            extra(i) = extra_astero_pgstar_inlist_name(i)
-            extra_astero_pgstar_inlist_name(i) = 'undefined'
-
-            if (read_extra(i)) then
-               call read1_astero_pgstar_inlist(extra(i), level+1, ierr)
-               if (ierr /= 0) return
-            end if
+            extra_inlists(i) = extra_astero_pgstar_inlist_name(i)
+            extra_inlists_mask(i) = read_extra_astero_pgstar_inlist(i)
          end do
 
-      end subroutine read1_astero_pgstar_inlist
-
+      end subroutine read_astero_pgstar_file
 
       subroutine save_sample_results_to_file(i_total, results_fname, ierr)
          use utils_lib
@@ -1057,7 +984,7 @@
          ! column numbers
          write(fmt,'(a)') '(99' // trim(astero_results_int_format) // ')'
 
-         k = 17 + num_constraints + num_parameters ! fixed columns
+         k = 17 + num_constraints + num_parameters  ! fixed columns
 
          if (chi2_seismo_fraction > 0) then
 
@@ -1079,7 +1006,7 @@
             write(iounit, fmt, advance='no') i
          end do
 
-         write(iounit, '(a)') ! end of column numbers line
+         write(iounit, '(a)')  ! end of column numbers line
 
          ! column names
          write(fmt,'(a)') '(99' // trim(astero_results_txt_format) // ')'
@@ -1162,7 +1089,7 @@
             write(iounit, astero_results_txt_format, advance='no') 'step_type'
          end if
 
-         write(iounit, '(a)') ! end of column names line
+         write(iounit, '(a)')  ! end of column names line
 
       end subroutine show_sample_header
 
@@ -1251,7 +1178,7 @@
             write(iounit, astero_results_txt_format, advance='no') trim(info_str)
          end if
 
-         write(iounit, '(a)') ! end of line
+         write(iounit, '(a)')  ! end of line
 
          contains
 
@@ -1279,8 +1206,8 @@
          ! sort results by increasing sample_chi2
          call set_sample_index_by_chi2
 
-         do j = 1, 3 ! line number
-            i = 1 ! column number, incremented after each column is written
+         do j = 1, 3  ! line number
+            i = 1  ! column number, incremented after each column is written
 
             call write_int('samples', sample_number)
 
@@ -1295,10 +1222,10 @@
             call write_txt('date', date)
             call write_txt('search_type', search_type)
 
-            write(iounit, '(a)') ! new line
+            write(iounit, '(a)')  ! new line
          end do
 
-         write(iounit, '(a)') ! blank line between header and sample data
+         write(iounit, '(a)')  ! blank line between header and sample data
 
          call show_sample_header(iounit)
          do j = 1, sample_number
@@ -1713,9 +1640,6 @@
             read(iounit, astero_results_int_format, advance='no', iostat=ierr) i
          end subroutine read1_int
 
-
       end subroutine read1_sample_from_file
 
-
       end module astero_def
-

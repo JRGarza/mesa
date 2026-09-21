@@ -1,31 +1,25 @@
 ! ***********************************************************************
 !
-! Copyright (C) 2010 The Mesa Team
+! Copyright (C) 2010 The MESA Team
 !
-! MESA is free software; you can use it and/or modify
-! it under the combined terms and restrictions of the MESA MANIFESTO
-! and the GNU General Library Public License as published
-! by the Free Software Foundation; either version 2 of the License,
-! or (at your option) any later version.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-! You should have received a copy of the MESA MANIFESTO along with
-! this software; if not, it is available at the mesa website:
-! http://mesa.sourceforge.net/
+!   This program is distributed in the hope that it will be useful,
+!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+!   See the GNU Lesser General Public License for more details.
 !
-! MESA is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-! See the GNU Library General Public License for more details.
-!
-! You should have received a copy of the GNU Library General Public License
-! along with this software; if not, write to the Free Software
-! Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
  module ctrls_io
 
- use const_def
+ use const_def, only: dp
  use star_private_def
 
  implicit none
@@ -111,7 +105,19 @@
     mixing_D_limit_for_log, trace_mass_location, min_tau_for_max_abs_v_location, &
     min_q_for_inner_mach1_location, max_q_for_outer_mach1_location, &
     conv_core_gap_dq_limit, &
-    alpha_TDC_DAMP, alpha_TDC_DAMPR, alpha_TDC_PtdVdt, &
+    TDC_alpha_D, TDC_alpha_R, TDC_alpha_Pt, TDC_alpha_M, &
+    TDC_alpha_C, TDC_alpha_S, &
+    TDC_alpha_M_use_explicit_mlt_vc_in_momentum_equation, &
+    TDC_adjust_mass_fallback_to_mlt, &
+    TDC_num_innermost_cells_forced_nonturbulent, TDC_num_outermost_cells_forced_nonturbulent, &
+    include_mlt_Pturb_in_thermodynamic_gradients, &
+    include_mlt_corr_to_TDC, use_TDC_enthalpy_flux_limiter, &
+    use_face_reconstruction, &
+    TDC_include_eturb_in_energy_equation, &
+    use_rsp_form_of_scale_height, include_mlt_in_velocity_time_centering, &
+    TDC_hydro_use_mass_interp_face_values, TDC_hydro_nz, TDC_hydro_nz_outer, TDC_hydro_nz_inner, &
+    TDC_hydro_nz_T_gradient, &
+    TDC_hydro_T_anchor, TDC_hydro_dq_1_factor, &
 
     ! burn zone eps definitions for use in logs and profiles
     burn_min1, burn_min2, &
@@ -129,7 +135,8 @@
     semiconvection_option, use_Ledoux_criterion, D_mix_zero_region_bottom_q, &
     num_cells_for_smooth_gradL_composition_term, threshold_for_smooth_gradL_composition_term, clip_D_limit, &
    gradT_excess_f1, gradT_excess_f2, gradT_excess_age_fraction, gradT_excess_max_change, gradT_excess_lambda1, &
-   gradT_excess_beta1, gradT_excess_lambda2, gradT_excess_beta2, gradT_excess_dlambda, gradT_excess_dbeta, gradT_excess_max_center_h1, &
+   gradT_excess_beta1, gradT_excess_lambda2, gradT_excess_beta2, &
+   gradT_excess_dlambda, gradT_excess_dbeta, gradT_excess_max_center_h1, &
    gradT_excess_min_center_he4, gradT_excess_max_logT, gradT_excess_min_log_tau_full_on, gradT_excess_max_log_tau_full_off, &
     use_superad_reduction, superad_reduction_gamma_limit, superad_reduction_gamma_limit_scale, D_mix_zero_region_top_q, &
     superad_reduction_gamma_inv_scale, superad_reduction_diff_grads_limit, superad_reduction_limit, &
@@ -144,7 +151,7 @@
     predictive_bdy_q_min, predictive_bdy_q_max, T_mix_limit, RSP_report_undercorrections, &
     do_conv_premix, conv_premix_avoid_increase, conv_premix_time_factor, &
     conv_premix_fix_pgas, conv_premix_dump_snapshots, do_premix_heating, &
-    overshoot_f, overshoot_f0, overshoot_D0, RSP_Qvisc_linear, dq_D_mix_zero_at_H_He_crossover, &
+    overshoot_f, overshoot_f2, overshoot_f0, overshoot_D0, RSP_Qvisc_linear, dq_D_mix_zero_at_H_He_crossover, &
     overshoot_Delta0, overshoot_mass_full_on, overshoot_mass_full_off, dq_D_mix_zero_at_H_C_crossover, &
     overshoot_scheme, overshoot_zone_type, overshoot_zone_loc, RSP_Qvisc_quadratic, &
     overshoot_bdy_loc, overshoot_D_min, overshoot_brunt_B_max, mlt_gradT_fraction, max_conv_vel_div_csound, &
@@ -226,8 +233,8 @@
     mesh_min_dlnR, merge_if_dlnR_too_small, min_dq_for_logT, &
     mesh_min_dr_div_dRstar, merge_if_dr_div_dRstar_too_small, &
     mesh_min_dr_div_cs, merge_if_dr_div_cs_too_small, &
-    max_center_cell_dq, max_surface_cell_dq, max_num_subcells, max_num_merge_cells, &
-    mesh_delta_coeff, mesh_delta_coeff_for_highT, &
+    max_center_cell_dq, max_surface_cell_dq, min_surface_cell_dq, max_num_subcells, max_num_merge_cells, &
+    max_num_merge_surface_cells ,mesh_delta_coeff, mesh_delta_coeff_for_highT, &
     logT_max_for_standard_mesh_delta_coeff, logT_min_for_highT_mesh_delta_coeff, remesh_dt_limit, &
     mesh_Pgas_div_P_exponent, &
     E_function_weight, E_function_param, P_function_weight, &
@@ -251,12 +258,16 @@
     gam_function_weight, gam_function_param1, gam_function_param2, &
     xa_function_species, xa_function_weight, xa_function_param, xa_mesh_delta_coeff, split_merge_amr_mesh_delta_coeff, &
     use_split_merge_amr, split_merge_amr_nz_baseline, split_merge_amr_log_zoning, split_merge_amr_hybrid_zoning, &
-    split_merge_amr_flipped_hybrid_zoning, split_merge_amr_logtau_zoning, split_merge_amr_okay_to_split_nz, split_merge_amr_nz_r_core, &
+    split_merge_amr_flipped_hybrid_zoning, split_merge_amr_logtau_zoning, &
+    split_merge_amr_okay_to_split_nz, split_merge_amr_nz_r_core, &
     split_merge_amr_okay_to_split_1, merge_amr_inhibit_at_jumps, split_merge_amr_MaxLong, split_merge_amr_nz_r_core_fraction, &
     split_merge_amr_MaxShort, merge_amr_max_abs_du_div_cs, &
     merge_amr_ignore_surface_cells, merge_amr_k_for_ignore_surface_cells, &
+    merge_amr_ignore_core_cells, merge_amr_logT_for_ignore_core_cells, &
+    split_amr_ignore_core_cells, split_amr_logT_for_ignore_core_cells, &
     merge_amr_du_div_cs_limit_only_for_compression, split_merge_amr_avoid_repeated_remesh, split_merge_amr_r_core_cm, &
-    split_merge_amr_dq_min, split_merge_amr_dq_max, split_merge_amr_max_iters, trace_split_merge_amr, equal_split_density_amr, &
+    split_merge_amr_dq_min, split_merge_amr_dq_max, split_merge_amr_max_iters, &
+    trace_split_merge_amr, equal_split_density_amr, use_hydro_merge_limits_in_mesh_plan, &
 
     ! nuclear reaction parameters
     screening_mode, default_net_name, net_logTcut_lo, net_logTcut_lim, &
@@ -277,7 +288,6 @@
     min_q_for_adjust_J_lost, min_J_div_delta_J, max_mdot_redo_cnt, mdot_revise_factor, &
     implicit_mdot_boost, min_years_dt_for_redo_mdot, surf_omega_div_omega_crit_limit, surf_omega_div_omega_crit_tol, &
     w_div_wcrit_max, w_div_wcrit_max2, &
-    fp_min, ft_min, fp_error_limit, ft_error_limit, &
     D_mix_rotation_max_logT_full_on, D_mix_rotation_min_logT_full_off, &
     D_mix_rotation_min_tau_full_off, D_mix_rotation_min_tau_full_on, &
     set_uniform_am_nu_non_rot, uniform_am_nu_non_rot, &
@@ -317,6 +327,7 @@
     do_phase_separation, &
     phase_separation_option, &
     do_phase_separation_heating, &
+    smooth_phase_separation_heating, &
     phase_separation_mixing_use_brunt, &
     phase_separation_no_diffusion, &
 
@@ -329,14 +340,16 @@
     high_logT_op_mono_full_on, op_mono_min_X_to_include, use_op_mono_alt_get_kap, &
 
 
-    include_L_in_correction_limits, include_v_in_correction_limits, include_u_in_correction_limits, include_w_in_correction_limits, &
+    include_L_in_correction_limits, include_v_in_correction_limits, &
+    include_u_in_correction_limits, include_w_in_correction_limits, &
 
     ! asteroseismology controls
-    get_delta_nu_from_scaled_solar, nu_max_sun, delta_nu_sun, astero_Teff_sun, delta_Pg_mode_freq, &
+    get_delta_nu_from_scaled_solar, nu_max_sun, delta_nu_sun, astero_Teff_sun, &
+    delta_Pg_mode_freq, delta_Pg_traditional, &
 
     ! hydro parameters
     energy_eqn_option, &
-    opacity_factor, opacity_max, min_logT_for_opacity_factor_off, min_logT_for_opacity_factor_on, &
+    opacity_factor, opacity_min, opacity_max, min_logT_for_opacity_factor_off, min_logT_for_opacity_factor_on, &
     max_logT_for_opacity_factor_on, max_logT_for_opacity_factor_off, &
     non_nuc_neu_factor, &
     use_time_centered_eps_grav, &
@@ -344,17 +357,23 @@
     include_composition_in_eps_grav, no_dedt_form_during_relax, &
     max_abs_rel_change_surf_lnS, &
     max_num_surf_revisions, Gamma_lnS_eps_grav_full_off, Gamma_lnS_eps_grav_full_on, &
-    use_dPrad_dm_form_of_T_gradient_eqn, use_gradT_actual_vs_gradT_MLT_for_T_gradient_eqn, dedt_eqn_r_scale, &
+    use_dPrad_dm_form_of_T_gradient_eqn, use_flux_limiting_with_dPrad_dm_form, &
+    use_gradT_actual_vs_gradT_MLT_for_T_gradient_eqn, dedt_eqn_r_scale, &
     RTI_A, RTI_B, RTI_C, RTI_D, RTI_max_alpha, RTI_C_X_factor, RTI_C_X0_frac, steps_before_use_velocity_time_centering, &
     RTI_dm_for_center_eta_nondecreasing, RTI_min_dm_behind_shock_for_full_on, RTI_energy_floor, &
     RTI_D_mix_floor, RTI_min_m_for_D_mix_floor, RTI_log_max_boost, RTI_m_full_boost, RTI_m_no_boost, &
     include_P_in_velocity_time_centering, include_L_in_velocity_time_centering, &
     P_theta_for_velocity_time_centering, L_theta_for_velocity_time_centering, &
+    max_logT_for_include_P_and_L_in_velocity_time_centering, &
     steps_before_use_TDC, use_P_d_1_div_rho_form_of_work_when_time_centering_velocity, compare_TDC_to_MLT, &
-    velocity_logT_lower_bound, max_dt_yrs_for_velocity_logT_lower_bound, velocity_tau_lower_bound, velocity_q_upper_bound, &
+    use_TDC_Y_face_seeded_newton, &
+    hydro_matrix_solver, &
+    remesh_for_TDC_pulsations_when_load, remesh_for_TDC_pulsations_log_core_zoning, &
+    velocity_logT_lower_bound, &
+    max_dt_yrs_for_velocity_logT_lower_bound, velocity_tau_lower_bound, velocity_q_upper_bound, &
     use_drag_energy, drag_coefficient, min_q_for_drag, &
     v_drag_factor, v_drag, q_for_v_drag_full_off, q_for_v_drag_full_on, &
-    retry_for_v_above_clight, &
+    report_max_infall_inside_fe_core, retry_for_v_above_clight, &
 
     ! hydro solver
     use_gold2_tolerances, gold2_solver_iters_timestep_limit, steps_before_use_gold2_tolerances, &
@@ -388,7 +407,8 @@
     op_split_burn, op_split_burn_min_T, op_split_burn_eps, op_split_burn_odescal, &
     op_split_burn_min_T_for_variable_T_solver, solver_test_partials_show_dx_var_name, &
     tiny_corr_coeff_limit, scale_correction_norm, corr_param_factor, num_times_solver_reuse_mtx, &
-    scale_max_correction, ignore_min_corr_coeff_for_scale_max_correction, ignore_too_large_correction, ignore_species_in_max_correction, &
+    scale_max_correction, ignore_min_corr_coeff_for_scale_max_correction, &
+    ignore_too_large_correction, ignore_species_in_max_correction, &
     corr_norm_jump_limit, max_corr_jump_limit, resid_norm_jump_limit, max_resid_jump_limit, RSP2_use_mass_interp_face_values, &
     corr_coeff_limit, tiny_corr_factor, solver_test_partials_call_number, solver_test_partials_iter_number, &
     max_tries1, solver_max_tries_before_reject, max_tries_for_retry, max_tries_after_5_retries, solver_test_partials_sink_name, &
@@ -402,7 +422,8 @@
     solver_test_partials_write_eos_call_info, solver_save_photo_call_number, RSP2_min_Lc_div_L_for_convective_mixing_type, &
     solver_test_partials_var_name, solver_test_partials_equ_name, RSP2_min_Lt_div_L_for_overshooting_mixing_type, &
     solver_test_eos_partials, solver_test_kap_partials, solver_test_net_partials, solver_test_atm_partials, &
-    fill_arrays_with_NaNs, zero_when_allocate, warn_when_large_rel_run_E_err, absolute_cumulative_energy_err, solver_test_partials_k_low, &
+    fill_arrays_with_NaNs, zero_when_allocate, warn_when_large_rel_run_E_err, &
+    absolute_cumulative_energy_err, solver_test_partials_k_low, &
     warn_when_large_virial_thm_rel_err, warn_when_get_a_bad_eos_result, warn_rates_for_high_temp, max_safe_logT_for_rates, &
     RSP2_alfap, RSP2_alfat, RSP2_alfam, RSP2_alfar, RSP2_Lsurf_factor, RSP2_use_Stellingwerf_Lr, RSP2_remesh_when_load, &
     RSP2_alfad, RSP2_num_outermost_cells_forced_nonturbulent, RSP2_num_innermost_cells_forced_nonturbulent, &
@@ -415,7 +436,9 @@
 
 
     ! timestep
-    time_delta_coeff, min_timestep_factor, max_timestep_factor, timestep_factor_for_retries, retry_hold, &
+    time_delta_coeff, min_timestep_factor, max_timestep_factor, &
+    max_timestep_factor_at_high_T, min_logT_for_max_timestep_factor_at_high_T, &
+    timestep_factor_for_retries, retry_hold, &
     neg_mass_fraction_hold, timestep_dt_factor, use_dt_low_pass_controller, &
     force_timestep_min, force_timestep_min_years, force_timestep_min_factor, force_timestep, force_timestep_years, &
     varcontrol_target, min_allowed_varcontrol_target, varcontrol_dt_limit_ratio_hard_max, xa_scale, &
@@ -486,8 +509,8 @@
     atm_irradiated_kap_v, atm_irradiated_kap_v_div_kap_th, atm_irradiated_P_surf, &
     atm_irradiated_max_iters, &
 
-    use_compression_outer_BC, use_momentum_outer_BC, Tsurf_factor, use_zero_Pgas_outer_BC, &
-    fixed_Psurf, use_fixed_Psurf_outer_BC, fixed_vsurf, use_fixed_vsurf_outer_BC, &
+    use_compression_outer_BC, use_momentum_outer_BC, use_zero_Pgas_outer_BC, &
+    fixed_Psurf, use_fixed_Psurf_outer_BC, fixed_vsurf, use_fixed_vsurf_outer_BC, use_RSP_L_eqn_outer_BC, &
 
     atm_build_tau_outer, atm_build_dlogtau, atm_build_errtol, &
 
@@ -525,7 +548,8 @@
     use_other_energy, use_other_mesh_functions, use_other_eps_grav, use_other_gradr_factor, &
     use_other_D_mix, use_other_neu, use_other_net_get, use_other_opacity_factor, use_other_pressure, &
     use_other_diffusion_coefficients, use_other_pgstar_plots, use_other_eval_fp_ft, use_other_eval_i_rot, use_other_torque, &
-    use_other_torque_implicit, use_other_wind, use_other_accreting_state, use_other_after_struct_burn_mix, use_other_mesh_delta_coeff_factor, &
+    use_other_torque_implicit, use_other_wind, use_other_accreting_state, &
+    use_other_after_struct_burn_mix, use_other_mesh_delta_coeff_factor, &
     use_other_before_struct_burn_mix, use_other_astero_freq_corr, use_other_timestep_limit, use_other_set_pgstar_controls, &
     use_other_screening, use_other_rate_get, use_other_net_derivs, use_other_split_burn, use_other_close_gaps, &
     x_ctrl, x_integer_ctrl, x_logical_ctrl, x_character_ctrl, &
@@ -555,7 +579,7 @@
  if (ierr /= 0) then
     write(*,*) 'failed to open ' // trim(filename)
     return
- endif
+ end if
 
  call set_controls_for_writing(s, ierr)
  if (ierr /= 0) then
@@ -598,18 +622,20 @@
 
 
  subroutine read_controls(id, filename, ierr)
+ use utils_namelist, only: read_namelist, missing_namelist_error
  use star_private_def
- use utils_lib
  character(*), intent(in) :: filename
  integer, intent(in) :: id
  integer, intent(out) :: ierr
 
  type (star_info), pointer :: s
- ierr = 0
  call get_star_ptr(id, s, ierr)
  if (ierr /= 0) return
 
- call read_controls_file(s, filename, 1, ierr)
+ call read_namelist(filename, read_controls_file, "controls", ierr, missing_namelist_error)
+ if (ierr /= 0) return
+
+ call store_controls(s)
  call check_controls(s, ierr)
 
  end subroutine read_controls
@@ -633,67 +659,32 @@
  end subroutine check_controls
 
 
- recursive subroutine read_controls_file(s, filename, level, ierr)
- use star_private_def
- use utils_lib
- character(*), intent(in) :: filename
- type (star_info), pointer :: s
- integer, intent(in) :: level
- integer, intent(out) :: ierr
- logical, dimension(max_extra_inlists) :: read_extra
- character (len=strlen), dimension(max_extra_inlists) :: extra
- integer :: unit, i
+ subroutine read_controls_file(unit, iostat, iomsg, extra_inlists, extra_inlists_mask)
+    use const_def, only: strlen
+    use utils_namelist, only: max_extra_inlists
 
- ierr = 0
+    integer, intent(in) :: unit
+    integer, intent(out) :: iostat
+    character(len=strlen), intent(out) :: iomsg
+    character(len=strlen), dimension(max_extra_inlists), intent(out) :: extra_inlists
+    logical, dimension(max_extra_inlists), intent(out) :: extra_inlists_mask
 
- if (level >= 10) then
- write(*,*) 'ERROR: too many levels of nested extra controls inlist files'
- ierr = -1
- return
- end if
+    integer :: i
 
- if (len_trim(filename) > 0) then
-    open(newunit=unit, file=trim(filename), action='read', delim='quote', status='old', iostat=ierr)
-    if (ierr /= 0) then
-       write(*, *) 'Failed to open control namelist file ', trim(filename)
+    read_extra_controls_inlist(:) = .false.
+
+    read(unit, nml=controls, iostat=iostat, iomsg=iomsg)
+
+    if (iostat /= 0) then
        return
     end if
-    read(unit, nml=controls, iostat=ierr)
-    close(unit)
-    if (ierr /= 0) then
-       write(*, *)
-       write(*, *)
-       write(*, *)
-       write(*, *)
-       write(*, '(a)') 'Failed while trying to read control namelist file: ' // trim(filename)
-       write(*, '(a)') 'Perhaps the following runtime error message will help you find the problem.'
-       write(*, *)
-       open(newunit=unit, file=trim(filename), action='read', delim='quote', status='old', iostat=ierr)
-       read(unit, nml=controls)
-       close(unit)
-       return
-    end if
- end if
 
- call store_controls(s, ierr)
-
- ! recursive calls to read other inlists
- do i=1, max_extra_inlists
-    read_extra(i) = read_extra_controls_inlist(i)
-    read_extra_controls_inlist(i) = .false.
-    extra(i) = extra_controls_inlist_name(i)
-    extra_controls_inlist_name(i) = 'undefined'
-
-    if (read_extra(i)) then
-       write(*,*) 'read ' // trim(extra(i))
-       call read_controls_file(s, extra(i), level+1, ierr)
-       if (ierr /= 0) return
-    end if
- end do
-
+    do i=1, max_extra_inlists
+       extra_inlists(i) = extra_controls_inlist_name(i)
+       extra_inlists_mask(i) = read_extra_controls_inlist(i)
+    end do
 
  end subroutine read_controls_file
-
 
  subroutine set_default_controls
 
@@ -748,14 +739,9 @@
  end subroutine set_default_controls
 
 
- subroutine store_controls(s, ierr)
+ subroutine store_controls(s)
  use star_private_def
- use chem_def ! categories
- use utils_lib, only: mkdir
  type (star_info), pointer :: s
- integer, intent(out) :: ierr
-
- ierr = 0
 
  ! where to start
  s% initial_mass = initial_mass
@@ -1107,6 +1093,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% do_premix_heating = do_premix_heating
 
  s% overshoot_f = overshoot_f
+ s% overshoot_f2 = overshoot_f2
  s% overshoot_f0 = overshoot_f0
  s% overshoot_D0 = overshoot_D0
  s% overshoot_Delta0 = overshoot_Delta0
@@ -1276,10 +1263,10 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
 
  s% use_compression_outer_BC = use_compression_outer_BC
  s% use_momentum_outer_BC = use_momentum_outer_BC
- s% Tsurf_factor = Tsurf_factor
  s% use_zero_Pgas_outer_BC = use_zero_Pgas_outer_BC
  s% fixed_vsurf = fixed_vsurf
  s% use_fixed_vsurf_outer_BC = use_fixed_vsurf_outer_BC
+ s% use_RSP_L_eqn_outer_BC = use_RSP_L_eqn_outer_BC
  s% fixed_Psurf = fixed_Psurf
  s% use_fixed_Psurf_outer_BC = use_fixed_Psurf_outer_BC
 
@@ -1480,8 +1467,10 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
 
  s% max_center_cell_dq = max_center_cell_dq
  s% max_surface_cell_dq = max_surface_cell_dq
+ s% min_surface_cell_dq = min_surface_cell_dq
  s% max_num_subcells = max_num_subcells
  s% max_num_merge_cells = max_num_merge_cells
+ s% max_num_merge_surface_cells = max_num_merge_surface_cells
 
  s% mesh_delta_coeff = mesh_delta_coeff
  s% mesh_delta_coeff_for_highT = mesh_delta_coeff_for_highT
@@ -1583,15 +1572,20 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% split_merge_amr_MaxShort = split_merge_amr_MaxShort
  s% merge_amr_max_abs_du_div_cs = merge_amr_max_abs_du_div_cs
  s% merge_amr_ignore_surface_cells = merge_amr_ignore_surface_cells
+ s% merge_amr_ignore_core_cells = merge_amr_ignore_core_cells
+ s% split_amr_ignore_core_cells = split_amr_ignore_core_cells
  s% merge_amr_du_div_cs_limit_only_for_compression = merge_amr_du_div_cs_limit_only_for_compression
  s% split_merge_amr_avoid_repeated_remesh = split_merge_amr_avoid_repeated_remesh
  s% merge_amr_k_for_ignore_surface_cells = merge_amr_k_for_ignore_surface_cells
+ s% merge_amr_logT_for_ignore_core_cells = merge_amr_logT_for_ignore_core_cells
+ s% split_amr_logT_for_ignore_core_cells = split_amr_logT_for_ignore_core_cells
  s% split_merge_amr_dq_min = split_merge_amr_dq_min
  s% split_merge_amr_dq_max = split_merge_amr_dq_max
  s% split_merge_amr_r_core_cm = split_merge_amr_r_core_cm
  s% split_merge_amr_max_iters = split_merge_amr_max_iters
  s% trace_split_merge_amr = trace_split_merge_amr
  s% equal_split_density_amr = equal_split_density_amr
+ s% use_hydro_merge_limits_in_mesh_plan = use_hydro_merge_limits_in_mesh_plan
 
  ! nuclear reaction parameters
  s% screening_mode = screening_mode
@@ -1679,10 +1673,6 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% surf_omega_div_omega_crit_tol = surf_omega_div_omega_crit_tol
  s% w_div_wcrit_max = w_div_wcrit_max
  s% w_div_wcrit_max2 = w_div_wcrit_max2
- s% fp_min = fp_min
- s% ft_min = ft_min
- s% fp_error_limit = fp_error_limit
- s% ft_error_limit = ft_error_limit
 
  s% D_mix_rotation_max_logT_full_on = D_mix_rotation_max_logT_full_on
  s% D_mix_rotation_min_logT_full_off = D_mix_rotation_min_logT_full_off
@@ -1790,6 +1780,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% do_phase_separation = do_phase_separation
  s% phase_separation_option = phase_separation_option
  s% do_phase_separation_heating = do_phase_separation_heating
+ s% smooth_phase_separation_heating = smooth_phase_separation_heating
  s% phase_separation_mixing_use_brunt = phase_separation_mixing_use_brunt
  s% phase_separation_no_diffusion = phase_separation_no_diffusion
 
@@ -1820,11 +1811,12 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% delta_nu_sun = delta_nu_sun
  s% astero_Teff_sun = astero_Teff_sun
  s% delta_Pg_mode_freq = delta_Pg_mode_freq
-
+ s% delta_Pg_traditional = delta_Pg_traditional
 
  ! hydro parameters
  s% energy_eqn_option = energy_eqn_option
  s% opacity_factor = opacity_factor
+ s% opacity_min = opacity_min
  s% opacity_max = opacity_max
  s% min_logT_for_opacity_factor_off = min_logT_for_opacity_factor_off
  s% min_logT_for_opacity_factor_on = min_logT_for_opacity_factor_on
@@ -1847,6 +1839,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% Gamma_lnS_eps_grav_full_on = Gamma_lnS_eps_grav_full_on
 
  s% use_dPrad_dm_form_of_T_gradient_eqn = use_dPrad_dm_form_of_T_gradient_eqn
+ s% use_flux_limiting_with_dPrad_dm_form = use_flux_limiting_with_dPrad_dm_form
  s% use_gradT_actual_vs_gradT_MLT_for_T_gradient_eqn = use_gradT_actual_vs_gradT_MLT_for_T_gradient_eqn
  s% include_P_in_velocity_time_centering = include_P_in_velocity_time_centering
  s% include_L_in_velocity_time_centering = include_L_in_velocity_time_centering
@@ -1854,6 +1847,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% steps_before_use_velocity_time_centering = steps_before_use_velocity_time_centering
  s% P_theta_for_velocity_time_centering = P_theta_for_velocity_time_centering
  s% L_theta_for_velocity_time_centering = L_theta_for_velocity_time_centering
+ s% max_logT_for_include_P_and_L_in_velocity_time_centering = max_logT_for_include_P_and_L_in_velocity_time_centering
 
  s% RTI_A = RTI_A
  s% RTI_B = RTI_B
@@ -1884,7 +1878,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% max_dt_yrs_for_velocity_logT_lower_bound = max_dt_yrs_for_velocity_logT_lower_bound
  s% velocity_tau_lower_bound = velocity_tau_lower_bound
  s% velocity_q_upper_bound = velocity_q_upper_bound
-
+ s% report_max_infall_inside_fe_core = report_max_infall_inside_fe_core
  s% retry_for_v_above_clight = retry_for_v_above_clight
 
  ! solvers
@@ -2061,10 +2055,36 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  s% max_safe_logT_for_rates = max_safe_logT_for_rates
  s% eps_mdot_leak_frac_factor = eps_mdot_leak_frac_factor
 
- s% alpha_TDC_DAMP = alpha_TDC_DAMP
- s% alpha_TDC_DAMPR = alpha_TDC_DAMPR
- s% alpha_TDC_PtdVdt = alpha_TDC_PtdVdt
+ s% TDC_alpha_D = TDC_alpha_D
+ s% TDC_alpha_R = TDC_alpha_R
+ s% TDC_alpha_Pt = TDC_alpha_Pt
+ s% TDC_alpha_M = TDC_alpha_M
+ s% TDC_alpha_C = TDC_alpha_C
+ s% TDC_alpha_S = TDC_alpha_S
+ s% TDC_alpha_M_use_explicit_mlt_vc_in_momentum_equation = TDC_alpha_M_use_explicit_mlt_vc_in_momentum_equation
+ s% TDC_adjust_mass_fallback_to_mlt = TDC_adjust_mass_fallback_to_mlt
+ s% TDC_num_innermost_cells_forced_nonturbulent = TDC_num_innermost_cells_forced_nonturbulent
+ s% TDC_num_outermost_cells_forced_nonturbulent = TDC_num_outermost_cells_forced_nonturbulent
+ s% include_mlt_Pturb_in_thermodynamic_gradients = include_mlt_Pturb_in_thermodynamic_gradients
+ s% include_mlt_corr_to_TDC = include_mlt_corr_to_TDC
+ s% use_TDC_enthalpy_flux_limiter = use_TDC_enthalpy_flux_limiter
+ s% use_face_reconstruction = use_face_reconstruction
+ s% TDC_include_eturb_in_energy_equation = TDC_include_eturb_in_energy_equation
+ s% use_rsp_form_of_scale_height = use_rsp_form_of_scale_height
+ s% include_mlt_in_velocity_time_centering = include_mlt_in_velocity_time_centering
  s% compare_TDC_to_MLT = compare_TDC_to_MLT
+ s% use_TDC_Y_face_seeded_newton = use_TDC_Y_face_seeded_newton
+ s% hydro_matrix_solver = hydro_matrix_solver
+ s% TDC_hydro_use_mass_interp_face_values = TDC_hydro_use_mass_interp_face_values
+ s% TDC_hydro_nz = TDC_hydro_nz
+ s% TDC_hydro_nz_outer = TDC_hydro_nz_outer
+ s% TDC_hydro_nz_inner = TDC_hydro_nz_inner
+ s% TDC_hydro_nz_T_gradient = TDC_hydro_nz_T_gradient
+ s% TDC_hydro_T_anchor = TDC_hydro_T_anchor
+ s% TDC_hydro_dq_1_factor = TDC_hydro_dq_1_factor
+
+ s% remesh_for_TDC_pulsations_when_load = remesh_for_TDC_pulsations_when_load
+ s% remesh_for_TDC_pulsations_log_core_zoning = remesh_for_TDC_pulsations_log_core_zoning
 
  s% RSP2_alfap = RSP2_alfap
  s% RSP2_alfad = RSP2_alfad
@@ -2445,7 +2465,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
 
  subroutine set_controls_for_writing(s, ierr)
  use star_private_def
- use chem_def ! categories
+ use chem_def  ! categories
  type (star_info), pointer :: s
  integer, intent(out) :: ierr
 
@@ -2801,6 +2821,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  do_premix_heating = s% do_premix_heating
 
  overshoot_f = s% overshoot_f
+ overshoot_f2 = s% overshoot_f2
  overshoot_f0 = s% overshoot_f0
  overshoot_D0 = s% overshoot_D0
  overshoot_Delta0 = s% overshoot_Delta0
@@ -2969,10 +2990,10 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
 
  use_compression_outer_BC = s% use_compression_outer_BC
  use_momentum_outer_BC = s% use_momentum_outer_BC
- Tsurf_factor = s% Tsurf_factor
  use_zero_Pgas_outer_BC = s% use_zero_Pgas_outer_BC
  fixed_vsurf = s% fixed_vsurf
  use_fixed_vsurf_outer_BC = s% use_fixed_vsurf_outer_BC
+ use_RSP_L_eqn_outer_BC = s% use_RSP_L_eqn_outer_BC
  fixed_Psurf = s% fixed_Psurf
  use_fixed_Psurf_outer_BC = s% use_fixed_Psurf_outer_BC
 
@@ -3167,8 +3188,11 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
 
  max_center_cell_dq = s% max_center_cell_dq
  max_surface_cell_dq = s% max_surface_cell_dq
+ min_surface_cell_dq = s% min_surface_cell_dq
+
  max_num_subcells = s% max_num_subcells
  max_num_merge_cells = s% max_num_merge_cells
+ max_num_merge_surface_cells = s% max_num_merge_surface_cells
 
  mesh_delta_coeff = s% mesh_delta_coeff
  mesh_delta_coeff_for_highT = s% mesh_delta_coeff_for_highT
@@ -3270,16 +3294,20 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  split_merge_amr_MaxShort = s% split_merge_amr_MaxShort
  merge_amr_max_abs_du_div_cs = s% merge_amr_max_abs_du_div_cs
  merge_amr_ignore_surface_cells = s% merge_amr_ignore_surface_cells
+ merge_amr_ignore_core_cells = s% merge_amr_ignore_core_cells
+ split_amr_ignore_core_cells = s% split_amr_ignore_core_cells
  merge_amr_du_div_cs_limit_only_for_compression = s% merge_amr_du_div_cs_limit_only_for_compression
  split_merge_amr_avoid_repeated_remesh = s% split_merge_amr_avoid_repeated_remesh
  merge_amr_k_for_ignore_surface_cells = s% merge_amr_k_for_ignore_surface_cells
+ merge_amr_logT_for_ignore_core_cells = s% merge_amr_logT_for_ignore_core_cells
+ split_amr_logT_for_ignore_core_cells = s% split_amr_logT_for_ignore_core_cells
  split_merge_amr_dq_min = s% split_merge_amr_dq_min
  split_merge_amr_dq_max = s% split_merge_amr_dq_max
  split_merge_amr_r_core_cm = s% split_merge_amr_r_core_cm
  split_merge_amr_max_iters = s% split_merge_amr_max_iters
  trace_split_merge_amr = s% trace_split_merge_amr
  equal_split_density_amr = s% equal_split_density_amr
-
+ use_hydro_merge_limits_in_mesh_plan = s% use_hydro_merge_limits_in_mesh_plan
  ! nuclear reaction parameters
  screening_mode = s% screening_mode
  default_net_name = s% default_net_name
@@ -3365,10 +3393,6 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  surf_omega_div_omega_crit_tol = s% surf_omega_div_omega_crit_tol
  w_div_wcrit_max = s% w_div_wcrit_max
  w_div_wcrit_max2 = s% w_div_wcrit_max2
- fp_min = s% fp_min
- ft_min = s% ft_min
- fp_error_limit = s% fp_error_limit
- ft_error_limit = s% ft_error_limit
 
  D_mix_rotation_max_logT_full_on = s% D_mix_rotation_max_logT_full_on
  D_mix_rotation_min_logT_full_off = s% D_mix_rotation_min_logT_full_off
@@ -3420,6 +3444,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  do_phase_separation = s% do_phase_separation
  phase_separation_option = s% phase_separation_option
  do_phase_separation_heating = s% do_phase_separation_heating
+ smooth_phase_separation_heating = s% smooth_phase_separation_heating
  phase_separation_mixing_use_brunt = s% phase_separation_mixing_use_brunt
  phase_separation_no_diffusion = s% phase_separation_no_diffusion
 
@@ -3506,9 +3531,11 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  delta_nu_sun = s% delta_nu_sun
  astero_Teff_sun = s% astero_Teff_sun
  delta_Pg_mode_freq = s% delta_Pg_mode_freq
+ delta_Pg_traditional = s% delta_Pg_traditional
 
  ! hydro parameters
  energy_eqn_option = s% energy_eqn_option
+ opacity_min = s% opacity_min
  opacity_max = s% opacity_max
  opacity_factor = s% opacity_factor
  min_logT_for_opacity_factor_off = s% min_logT_for_opacity_factor_off
@@ -3531,12 +3558,14 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  Gamma_lnS_eps_grav_full_on = s% Gamma_lnS_eps_grav_full_on
 
  use_dPrad_dm_form_of_T_gradient_eqn = s% use_dPrad_dm_form_of_T_gradient_eqn
+ use_flux_limiting_with_dPrad_dm_form = s% use_flux_limiting_with_dPrad_dm_form
  use_gradT_actual_vs_gradT_MLT_for_T_gradient_eqn = s% use_gradT_actual_vs_gradT_MLT_for_T_gradient_eqn
  steps_before_use_velocity_time_centering = s% steps_before_use_velocity_time_centering
  include_P_in_velocity_time_centering = s% include_P_in_velocity_time_centering
  include_L_in_velocity_time_centering = s% include_L_in_velocity_time_centering
  P_theta_for_velocity_time_centering = s% P_theta_for_velocity_time_centering
  L_theta_for_velocity_time_centering = s% L_theta_for_velocity_time_centering
+ max_logT_for_include_P_and_L_in_velocity_time_centering = s% max_logT_for_include_P_and_L_in_velocity_time_centering
  use_P_d_1_div_rho_form_of_work_when_time_centering_velocity = s% use_P_d_1_div_rho_form_of_work_when_time_centering_velocity
 
  RTI_A = s% RTI_A
@@ -3567,7 +3596,7 @@ s% gradT_excess_max_log_tau_full_off = gradT_excess_max_log_tau_full_off
  max_dt_yrs_for_velocity_logT_lower_bound = s% max_dt_yrs_for_velocity_logT_lower_bound
  velocity_tau_lower_bound = s% velocity_tau_lower_bound
  velocity_q_upper_bound = s% velocity_q_upper_bound
-
+ report_max_infall_inside_fe_core = s% report_max_infall_inside_fe_core
  retry_for_v_above_clight = s% retry_for_v_above_clight
 
  ! solvers
@@ -3744,10 +3773,36 @@ solver_test_partials_sink_name = s% solver_test_partials_sink_name
  max_safe_logT_for_rates = s% max_safe_logT_for_rates
  eps_mdot_leak_frac_factor = s% eps_mdot_leak_frac_factor
 
- alpha_TDC_DAMP = s% alpha_TDC_DAMP
- alpha_TDC_DAMPR = s% alpha_TDC_DAMPR
- alpha_TDC_PtdVdt = s% alpha_TDC_PtdVdt
+ TDC_alpha_D = s% TDC_alpha_D
+ TDC_alpha_R = s% TDC_alpha_R
+ TDC_alpha_Pt = s% TDC_alpha_Pt
+ TDC_alpha_M = s% TDC_alpha_M
+ TDC_alpha_C = s% TDC_alpha_C
+ TDC_alpha_S = s% TDC_alpha_S
+ TDC_alpha_M_use_explicit_mlt_vc_in_momentum_equation = s% TDC_alpha_M_use_explicit_mlt_vc_in_momentum_equation
+ TDC_adjust_mass_fallback_to_mlt = s% TDC_adjust_mass_fallback_to_mlt
+ TDC_num_innermost_cells_forced_nonturbulent = s% TDC_num_innermost_cells_forced_nonturbulent
+ TDC_num_outermost_cells_forced_nonturbulent = s% TDC_num_outermost_cells_forced_nonturbulent
+ include_mlt_Pturb_in_thermodynamic_gradients = s% include_mlt_Pturb_in_thermodynamic_gradients
+ include_mlt_corr_to_TDC = s% include_mlt_corr_to_TDC
+ use_TDC_enthalpy_flux_limiter = s% use_TDC_enthalpy_flux_limiter
+ use_face_reconstruction = s% use_face_reconstruction
+ TDC_include_eturb_in_energy_equation = s% TDC_include_eturb_in_energy_equation
+ use_rsp_form_of_scale_height = s% use_rsp_form_of_scale_height
+ include_mlt_in_velocity_time_centering = s% include_mlt_in_velocity_time_centering
  compare_TDC_to_MLT = s% compare_TDC_to_MLT
+ use_TDC_Y_face_seeded_newton = s% use_TDC_Y_face_seeded_newton
+ hydro_matrix_solver = s% hydro_matrix_solver
+ TDC_hydro_use_mass_interp_face_values = s% TDC_hydro_use_mass_interp_face_values
+ TDC_hydro_nz = s% TDC_hydro_nz
+ TDC_hydro_nz_outer = s% TDC_hydro_nz_outer
+ TDC_hydro_nz_inner = s% TDC_hydro_nz_inner
+ TDC_hydro_nz_T_gradient = s% TDC_hydro_nz_T_gradient
+ TDC_hydro_T_anchor = s% TDC_hydro_T_anchor
+ TDC_hydro_dq_1_factor = s% TDC_hydro_dq_1_factor
+
+ remesh_for_TDC_pulsations_when_load = s% remesh_for_TDC_pulsations_when_load
+ remesh_for_TDC_pulsations_log_core_zoning = s% remesh_for_TDC_pulsations_log_core_zoning
 
  RSP2_alfap= s% RSP2_alfap
  RSP2_alfad = s% RSP2_alfad
@@ -4161,7 +4216,7 @@ solver_test_partials_sink_name = s% solver_test_partials_sink_name
          read(iounit,'(A)',iostat=iostat) str
          ind = index(trim(str),trim(upper_name))
          if( ind /= 0 ) then
-            val = str(ind+len_trim(upper_name):len_trim(str)-1) ! Remove final comma and starting =
+            val = str(ind+len_trim(upper_name):len_trim(str)-1)  ! Remove final comma and starting =
             do i=1,len(val)
                if(val(i:i)=='"') val(i:i) = ' '
             end do
@@ -4193,11 +4248,9 @@ solver_test_partials_sink_name = s% solver_test_partials_sink_name
       read(tmp, nml=controls)
 
       ! Add to star
-      call store_controls(s, ierr)
+      call store_controls(s)
       if(ierr/=0) return
 
    end subroutine set_control
 
-
  end module ctrls_io
-

@@ -2,32 +2,25 @@
 !
 !   Copyright (C) 2012-2019  The MESA Team
 !
-!   MESA is free software; you can use it and/or modify
-!   it under the combined terms and restrictions of the MESA MANIFESTO
-!   and the GNU General Library Public License as published
-!   by the Free Software Foundation; either version 2 of the License,
-!   or (at your option) any later version.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   You should have received a copy of the MESA MANIFESTO along with
-!   this software; if not, it is available at the mesa website:
-!   http://mesa.sourceforge.net/
-!
-!   MESA is distributed in the hope that it will be useful,
+!   This program is distributed in the hope that it will be useful,
 !   but WITHOUT ANY WARRANTY; without even the implied warranty of
 !   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-!   See the GNU Library General Public License for more details.
+!   See the GNU Lesser General Public License for more details.
 !
-!   You should have received a copy of the GNU Library General Public License
-!   along with this software; if not, write to the Free Software
-!   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
-
 
       module hydro_momentum
 
       use star_private_def
-      use const_def
+      use const_def, only: dp, ln10, secyer
       use utils_lib, only: mesa_error, is_bad
       use auto_diff
       use star_utils, only: em1, e00, ep1
@@ -35,12 +28,12 @@
       implicit none
 
       private
-      public :: do1_momentum_eqn, do_surf_momentum_eqn, do1_radius_eqn, &
-         expected_HSE_grav_term
-
+      public :: do1_momentum_eqn
+      public :: do_surf_momentum_eqn
+      public :: do1_radius_eqn
+      public :: expected_HSE_grav_term
 
       contains
-
 
       subroutine do_surf_momentum_eqn(s, P_surf_ad, nvar, ierr)
          use star_utils, only: store_partials
@@ -69,7 +62,7 @@
          integer, intent(in) :: nvar
          integer, intent(out) :: ierr
          real(dp) :: d_dm1(nvar), d_d00(nvar), d_dp1(nvar)
-         type(auto_diff_real_star_order1) :: P_surf_ad ! only used if k == 1
+         type(auto_diff_real_star_order1) :: P_surf_ad  ! only used if k == 1
          include 'formats'
          P_surf_ad = 0d0
          call get1_momentum_eqn( &
@@ -91,7 +84,7 @@
 
          type (star_info), pointer :: s
          integer, intent(in) :: k
-         type(auto_diff_real_star_order1), intent(in) :: P_surf_ad ! only used if k == 1
+         type(auto_diff_real_star_order1), intent(in) :: P_surf_ad  ! only used if k == 1
          integer, intent(in) :: nvar
          real(dp), intent(out) :: d_dm1(nvar), d_d00(nvar), d_dp1(nvar)
          integer, intent(out) :: ierr
@@ -134,22 +127,25 @@
 !   0  = (other + grav - RTI_terms)*dm/area - dPtot_ad - d_mlt_Pturb_ad
 !   0  = other_dm_div_A_ad + grav_dm_div_A_ad - dPtot_ad - d_mlt_Pturb_ad + RTI_terms_dm_div_A_ad
 
-         call setup_HSE(dm_div_A, ierr); if (ierr /= 0) return ! grav_ad and dm_div_A_ad
-         call setup_non_HSE(ierr); if (ierr /= 0) return ! other = s% extra_grav(k) - dv_dt
-         call setup_dPtot(ierr); if (ierr /= 0) return ! dPtot_ad, iPtotavg_ad
-         call setup_d_mlt_Pturb(ierr); if (ierr /= 0) return ! d_mlt_Pturb_ad
-         call setup_RTI_terms(ierr); if (ierr /= 0) return ! RTI_terms_ad
+         call setup_HSE(dm_div_A, ierr); if (ierr /= 0) return  ! grav_ad and dm_div_A_ad
+         call setup_non_HSE(ierr); if (ierr /= 0) return  ! other = s% extra_grav(k) - dv_dt
+         call setup_dPtot(ierr); if (ierr /= 0) return  ! dPtot_ad, iPtotavg_ad
+         call setup_d_mlt_Pturb(ierr); if (ierr /= 0) return  ! d_mlt_Pturb_ad
+         call setup_RTI_terms(ierr); if (ierr /= 0) return  ! RTI_terms_ad
 
          other_dm_div_A_ad = other_ad*dm_div_A_ad
          grav_dm_div_A_ad = grav_ad*dm_div_A_ad
          RTI_terms_dm_div_A_ad = RTI_terms_ad*dm_div_A_ad
 
          ! sum terms in residual_sum_ad using accurate_auto_diff_real_star_order1
-         residual_sum_ad = &
-            other_dm_div_A_ad + grav_dm_div_A_ad - dPtot_ad - d_mlt_Pturb_ad + RTI_terms_dm_div_A_ad
+         residual_sum_ad = other_dm_div_A_ad
+         residual_sum_ad = residual_sum_ad + grav_dm_div_A_ad
+         residual_sum_ad = residual_sum_ad - dPtot_ad
+         residual_sum_ad = residual_sum_ad - d_mlt_Pturb_ad
+         residual_sum_ad = residual_sum_ad + RTI_terms_dm_div_A_ad
 
-         resid1_ad = residual_sum_ad ! convert back to auto_diff_real_star_order1
-         resid_ad = resid1_ad*iPtotavg_ad ! scaling
+         resid1_ad = residual_sum_ad  ! convert back to auto_diff_real_star_order1
+         resid_ad = resid1_ad*iPtotavg_ad  ! scaling
          residual = resid_ad%val
          s% equ(i_dv_dt, k) = residual
 
@@ -191,13 +187,13 @@
             if (s% use_mass_corrections) then
                if (k > 1) then
                   dm_face = (s% dm(k)*s% mass_correction(k) + s% dm(k-1)*s% mass_correction(k-1))/2d0
-               else ! k == 1
+               else  ! k == 1
                   dm_face = s% dm(k)*s% mass_correction(k)/2d0
                end if
             else
                if (k > 1) then
                   dm_face = (s% dm(k) + s% dm(k-1))/2d0
-               else ! k == 1
+               else  ! k == 1
                   dm_face = s% dm(k)/2d0
                end if
             end if
@@ -262,15 +258,15 @@
             if (.not. s% RTI_flag) return
             if (k >= s% nz .or. k <= 1) return
             ! diffusion of specific momentum (i.e. v)
-            if (s% dudt_RTI_diffusion_factor > 0d0) then ! add diffusion source term to dvdt
+            if (s% dudt_RTI_diffusion_factor > 0d0) then  ! add diffusion source term to dvdt
                ! sigmid_RTI(k) is mixing flow at center k in (gm sec^1)
                sigm1 = s% dudt_RTI_diffusion_factor*s% sigmid_RTI(k-1)
                sig00 = s% dudt_RTI_diffusion_factor*s% sigmid_RTI(k)
                v_p1 = wrap_v_p1(s, k)
                v_00 = wrap_v_00(s, k)
                v_m1 = wrap_v_m1(s, k)
-               dvdt_diffusion = sig00*(v_p1 - v_00) - sigm1*(v_00 - v_m1) ! (g/s)*(cm/s)
-               dvdt_diffusion = dvdt_diffusion/s% dm_bar(k) ! divide by g to get units of cm/s^2
+               dvdt_diffusion = sig00*(v_p1 - v_00) - sigm1*(v_00 - v_m1)  ! (g/s)*(cm/s)
+               dvdt_diffusion = dvdt_diffusion/s% dm_bar(k)  ! divide by g to get units of cm/s^2
             else
                dvdt_diffusion = 0d0
             end if
@@ -280,7 +276,7 @@
                f = s% dlnddt_RTI_diffusion_factor*s% eta_RTI(k)/dm_div_A_ad
                rho_00 = wrap_d_00(s, k)
                rho_m1 = wrap_d_m1(s, k)
-               dvdt_kick = f*(rho_00 - rho_m1)/s% dt ! change v according to direction of lower density
+               dvdt_kick = f*(rho_00 - rho_m1)/s% dt  ! change v according to direction of lower density
             else
                dvdt_kick = 0d0
             end if
@@ -378,6 +374,7 @@
       subroutine expected_non_HSE_term( &
             s, k, other_ad, other, accel_ad, Uq_ad, ierr)
          use hydro_rsp2, only: compute_Uq_face
+         use tdc_hydro, only: compute_tdc_Uq_face
          use accurate_sum_auto_diff_star_order1
          use auto_diff_support
          type (star_info), pointer :: s
@@ -388,6 +385,7 @@
          integer, intent(out) :: ierr
          type(auto_diff_real_star_order1) :: extra_ad, v_00, &
             drag
+         type(accurate_auto_diff_real_star_order1) :: other_sum_ad
          real(dp) :: accel, d_accel_dv
          logical :: test_partials, local_v_flag
 
@@ -400,6 +398,7 @@
             extra_ad = s% extra_grav(k)
          end if
 
+         Uq_ad = 0d0
          accel_ad = 0d0
          drag = 0d0
          s% dvdt_drag(k) = 0d0
@@ -415,7 +414,7 @@
             if (local_v_flag) then
                accel = s% dxh_v(k)/s% dt
                d_accel_dv = 1d0/s% dt
-            else ! assume vstart(k) = 0 and
+            else  ! assume vstart(k) = 0 and
                ! constant acceleration dv_dt so vfinal(k) = dv_dt*dt
                ! v(k) = dr/dt = average velocity =
                !      (vstart + vfinal)/2 = dv_dt*dt/2 when vstart = 0
@@ -432,15 +431,21 @@
                s% dvdt_drag(k) = drag%val
             end if
 
-         end if ! v_flag
+            if (s% RSP2_flag) then  ! Uq(k) is turbulent viscosity drag at face k
+               Uq_ad = compute_Uq_face(s, k, ierr)
+               if (ierr /= 0) return
+            else if (s% TDC_alpha_M > 0 .and. s% MLT_option == 'TDC') then ! Uq(k) is turbulent viscosity drag at face k
+               Uq_ad = compute_tdc_Uq_face(s, k, ierr)
+               if (ierr /= 0) return
+            end if
 
-         Uq_ad = 0d0
-         if (s% RSP2_flag) then ! Uq(k) is turbulent viscosity drag at face k
-            Uq_ad = compute_Uq_face(s, k, ierr)
-            if (ierr /= 0) return
-         end if
+         end if  ! v_flag
 
-         other_ad = extra_ad - accel_ad + drag + Uq_ad
+         other_sum_ad = extra_ad
+         other_sum_ad = other_sum_ad - accel_ad
+         other_sum_ad = other_sum_ad + drag
+         other_sum_ad = other_sum_ad + Uq_ad
+         other_ad = other_sum_ad
          other = other_ad%val
 
          !test_partials = (k == s% solver_test_partials_k)
@@ -461,11 +466,10 @@
             dPtot_ad, dPtot, d_dPtot_dxam1, d_dPtot_dxa00, &
             iPtotavg_ad, iPtotavg, d_iPtotavg_dxam1, d_iPtotavg_dxa00, ierr)
          use star_utils, only: calc_Ptot_ad_tw
-         use accurate_sum_auto_diff_star_order1
          use auto_diff_support
          type (star_info), pointer :: s
          integer, intent(in) :: k
-         type(auto_diff_real_star_order1), intent(in) :: P_surf_ad ! only used if k == 1
+         type(auto_diff_real_star_order1), intent(in) :: P_surf_ad  ! only used if k == 1
          type(auto_diff_real_star_order1), intent(out) :: dPtot_ad, iPtotavg_ad
          real(dp), intent(out) :: dPtot, iPtotavg
          real(dp), intent(out), dimension(s% species) :: &
@@ -495,7 +499,7 @@
                s, k-1, skip_P, skip_mlt_Pturb, Ptotm1_ad, d_Ptotm1_dxam1, ierr)
             if (ierr /= 0) return
             Ptotm1_ad = shift_m1(Ptotm1_ad)
-         else ! k == 1
+         else  ! k == 1
             Ptotm1_ad = P_surf_ad
          end if
          Ptotm1 = Ptotm1_ad%val
@@ -582,8 +586,8 @@
          ! (r - r0)/r0 = r/r0 - 1 = exp(lnR)/exp(lnR0) - 1
          ! = exp(lnR - lnR0) - 1 = exp(dlnR) - 1 = exp(dlnR_dt*dt) - 1
          ! eqn becomes: v00*dt/r0 = expm1(dlnR)
-         dxh_lnR = wrap_dxh_lnR(s,k) ! lnR - lnR_start
-         dr_div_r0_actual = expm1(dxh_lnR) ! expm1(x) = E^x - 1
+         dxh_lnR = wrap_dxh_lnR(s,k)  ! lnR - lnR_start
+         dr_div_r0_actual = expm1(dxh_lnR)  ! expm1(x) = E^x - 1
 
          v00 = wrap_opt_time_center_v_00(s,k)
          dr_div_r0_expected = v00*s% dt/s% r_start(k)
@@ -602,6 +606,5 @@
             write(*,*) 'do1_radius_eqn', s% solver_test_partials_var
          end if
       end subroutine do1_radius_eqn
-
 
       end module hydro_momentum

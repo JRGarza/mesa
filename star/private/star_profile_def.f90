@@ -2,24 +2,18 @@
 !
 !   Copyright (C) 2014-2019  The MESA Team
 !
-!   MESA is free software; you can use it and/or modify
-!   it under the combined terms and restrictions of the MESA MANIFESTO
-!   and the GNU General Library Public License as published
-!   by the Free Software Foundation; either version 2 of the License,
-!   or (at your option) any later version.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   You should have received a copy of the MESA MANIFESTO along with
-!   this software; if not, it is available at the mesa website:
-!   http://mesa.sourceforge.net/
-!
-!   MESA is distributed in the hope that it will be useful,
+!   This program is distributed in the hope that it will be useful,
 !   but WITHOUT ANY WARRANTY; without even the implied warranty of
 !   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-!   See the GNU Library General Public License for more details.
+!   See the GNU Lesser General Public License for more details.
 !
-!   You should have received a copy of the GNU Library General Public License
-!   along with this software; if not, write to the Free Software
-!   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
@@ -90,7 +84,8 @@
       integer, parameter :: p_radius_cm = p_radius_km + 1
       integer, parameter :: p_radius = p_radius_cm + 1
       integer, parameter :: p_logR = p_radius + 1
-      integer, parameter :: p_log_q = p_logR + 1
+      integer, parameter :: p_psi_roche = p_logR + 1
+      integer, parameter :: p_log_q = p_psi_roche + 1
       integer, parameter :: p_q = p_log_q + 1
       integer, parameter :: p_log_dq = p_q + 1
       integer, parameter :: p_dq = p_log_dq + 1
@@ -384,7 +379,8 @@
       integer, parameter :: p_d_v_div_r_dr = p_d_v_div_r_dm + 1
 
       integer, parameter :: p_dvdt_grav = p_d_v_div_r_dr + 1
-      integer, parameter :: p_dvdt_dPdm = p_dvdt_grav + 1
+      integer, parameter :: p_grav_eff = p_dvdt_grav + 1
+      integer, parameter :: p_dvdt_dPdm = p_grav_eff + 1
       integer, parameter :: p_du = p_dvdt_dPdm + 1
       integer, parameter :: p_P_face = p_du + 1
 
@@ -577,8 +573,9 @@
 
       integer, parameter :: p_total_energy_sign = p_cs_at_cell_bdy + 1
       integer, parameter :: p_total_energy = p_total_energy_sign + 1
+      integer, parameter :: p_dwork_dm = p_total_energy + 1
 
-      integer, parameter :: p_Ptrb = p_total_energy + 1
+      integer, parameter :: p_Ptrb = p_dwork_dm + 1
       integer, parameter :: p_log_Ptrb = p_Ptrb + 1
       integer, parameter :: p_log_w = p_log_Ptrb + 1
       integer, parameter :: p_w = p_log_w + 1
@@ -602,7 +599,18 @@
       integer, parameter :: p_Lt = p_Lc_div_L + 1
       integer, parameter :: p_Lt_div_L = p_Lt + 1
 
-      integer, parameter :: p_rsp_log_erad = p_Lt_div_L + 1
+      integer, parameter :: p_reconstructed_T_face = p_Lt_div_L + 1
+      integer, parameter :: p_reconstructed_rho_face = p_reconstructed_T_face + 1
+      integer, parameter :: p_reconstructed_P_face = p_reconstructed_rho_face + 1
+      integer, parameter :: p_reconstructed_Cp_face = p_reconstructed_P_face + 1
+      integer, parameter :: p_reconstructed_ChiRho_face = p_reconstructed_Cp_face + 1
+      integer, parameter :: p_reconstructed_ChiT_face = p_reconstructed_ChiRho_face + 1
+      integer, parameter :: p_reconstructed_grada_face = p_reconstructed_ChiT_face + 1
+      integer, parameter :: p_reconstructed_opacity_face = p_reconstructed_grada_face + 1
+      integer, parameter :: p_reconstructed_scale_height_face = p_reconstructed_opacity_face + 1
+      integer, parameter :: p_reconstructed_gradr_face = p_reconstructed_scale_height_face + 1
+
+      integer, parameter :: p_rsp_log_erad = p_reconstructed_gradr_face + 1
       integer, parameter :: p_rsp_erad = p_rsp_log_erad + 1
       integer, parameter :: p_rsp_logEt = p_rsp_erad + 1
       integer, parameter :: p_rsp_Et = p_rsp_logEt + 1
@@ -708,9 +716,13 @@
       integer, parameter :: p_RTI_du_diffusion_kick = p_dPdr_dRhodr_info + 1
       integer, parameter :: p_log_du_kick_div_du = p_RTI_du_diffusion_kick + 1
 
-      integer, parameter :: p_lum_rad_div_L_Edd_sub_fourPrad_div_PchiT = p_log_du_kick_div_du + 1
+      integer, parameter :: p_Frad_div_cUrad = p_log_du_kick_div_du + 1
+      integer, parameter :: p_lum_rad_div_L_Edd_sub_fourPrad_div_PchiT = p_Frad_div_cUrad + 1
 
-      integer, parameter :: p_col_id_max = p_lum_rad_div_L_Edd_sub_fourPrad_div_PchiT
+      integer, parameter :: p_flux_limit_R = p_lum_rad_div_L_Edd_sub_fourPrad_div_PchiT + 1
+      integer, parameter :: p_flux_limit_lambda = p_flux_limit_R + 1
+
+      integer, parameter :: p_col_id_max = p_flux_limit_lambda
 
       character (len=maxlen_profile_column_name) :: profile_column_name(p_col_id_max)
       type (integer_dict), pointer :: profile_column_names_dict
@@ -783,6 +795,7 @@
          profile_column_name(p_rmid) = 'rmid'
          profile_column_name(p_logR_cm) = 'logR_cm'
          profile_column_name(p_logR) = 'logR'
+         profile_column_name(p_psi_roche) = 'psi_roche'
          profile_column_name(p_log_q) = 'log_q'
          profile_column_name(p_q) = 'q'
          profile_column_name(p_dq) = 'dq'
@@ -1073,6 +1086,7 @@
          profile_column_name(p_d_v_div_r_dm) = 'd_v_div_r_dm'
          profile_column_name(p_d_v_div_r_dr) = 'd_v_div_r_dr'
          profile_column_name(p_dvdt_grav) = 'dvdt_grav'
+         profile_column_name(p_grav_eff) = 'grav_eff'
          profile_column_name(p_dvdt_dPdm) = 'dvdt_dPdm'
          profile_column_name(p_du) = 'du'
          profile_column_name(p_P_face) = 'P_face'
@@ -1249,6 +1263,7 @@
 
          profile_column_name(p_total_energy_sign) = 'total_energy_sign'
          profile_column_name(p_total_energy) = 'total_energy'
+         profile_column_name(p_dwork_dm) = 'dwork_dm'
 
          profile_column_name(p_Ptrb) = 'Ptrb'
          profile_column_name(p_log_Ptrb) = 'log_Ptrb'
@@ -1273,6 +1288,16 @@
          profile_column_name(p_Lc_div_L) = 'Lc_div_L'
          profile_column_name(p_Lt) = 'Lt'
          profile_column_name(p_Lt_div_L) = 'Lt_div_L'
+         profile_column_name(p_reconstructed_T_face) = 'reconstructed_T_face'
+         profile_column_name(p_reconstructed_rho_face) = 'reconstructed_rho_face'
+         profile_column_name(p_reconstructed_P_face) = 'reconstructed_P_face'
+         profile_column_name(p_reconstructed_Cp_face) = 'reconstructed_Cp_face'
+         profile_column_name(p_reconstructed_ChiRho_face) = 'reconstructed_ChiRho_face'
+         profile_column_name(p_reconstructed_ChiT_face) = 'reconstructed_ChiT_face'
+         profile_column_name(p_reconstructed_grada_face) = 'reconstructed_grada_face'
+         profile_column_name(p_reconstructed_opacity_face) = 'reconstructed_opacity_face'
+         profile_column_name(p_reconstructed_scale_height_face) = 'reconstructed_scale_height_face'
+         profile_column_name(p_reconstructed_gradr_face) = 'reconstructed_gradr_face'
 
          profile_column_name(p_rsp_Et) = 'rsp_Et'
          profile_column_name(p_rsp_logEt) = 'rsp_logEt'
@@ -1395,13 +1420,17 @@
          profile_column_name(p_tau_epsnuc) = 'tau_epsnuc'
          profile_column_name(p_tau_cool) = 'tau_cool'
 
+         profile_column_name(p_Frad_div_cUrad) = 'Frad_div_cUrad'
          profile_column_name(p_lum_rad_div_L_Edd_sub_fourPrad_div_PchiT) = 'lum_rad_div_L_Edd_sub_fourPrad_div_PchiT'
+
+         profile_column_name(p_flux_limit_R) = 'flux_limit_R'
+         profile_column_name(p_flux_limit_lambda) = 'flux_limit_lambda'
 
          cnt = 0
          do i=1,p_col_id_max
             if (len_trim(profile_column_name(i)) == 0) then
                write(*,*) 'missing name for profile column id', i
-               if (i > 1) write(*,*) 'following ' // trim(profile_column_name(max(1,i-1))) ! bp: get rid of bogus compiler warning
+               if (i > 1) write(*,*) 'following ' // trim(profile_column_name(max(1,i-1)))  ! bp: get rid of bogus compiler warning
                write(*,'(A)')
                cnt = cnt+1
             end if
@@ -1441,7 +1470,4 @@
          do_get_profile_id = value
       end function do_get_profile_id
 
-
-
       end module star_profile_def
-

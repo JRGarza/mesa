@@ -2,24 +2,18 @@
 !
 !   Copyright (C) 2013  The MESA Team
 !
-!   MESA is free software; you can use it and/or modify
-!   it under the combined terms and restrictions of the MESA MANIFESTO
-!   and the GNU General Library Public License as published
-!   by the Free Software Foundation; either version 2 of the License,
-!   or (at your option) any later version.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   You should have received a copy of the MESA MANIFESTO along with
-!   this software; if not, it is available at the mesa website:
-!   http://mesa.sourceforge.net/
-!
-!   MESA is distributed in the hope that it will be useful,
+!   This program is distributed in the hope that it will be useful,
 !   but WITHOUT ANY WARRANTY; without even the implied warranty of
 !   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-!   See the GNU Library General Public License for more details.
+!   See the GNU Lesser General Public License for more details.
 !
-!   You should have received a copy of the GNU Library General Public License
-!   along with this software; if not, write to the Free Software
-!   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
@@ -169,7 +163,6 @@
          fallback_check_total_energy, &
          remove_fallback_speed_limit, &
          remove_center_set_zero_v_center, &
-         retain_fallback_at_each_step, &
          limit_center_logP_at_each_step, &
          remove_center_adjust_L_center, &
          remove_center_logRho_limit, &
@@ -268,14 +261,6 @@
 
          adjust_tau_factor_to_surf_density, &
          base_for_adjust_tau_factor_to_surf_density, &
-
-         relax_Tsurf_factor, &
-         relax_initial_Tsurf_factor, &
-         set_Tsurf_factor, &
-         set_initial_Tsurf_factor, &
-         relax_to_this_Tsurf_factor, &
-         set_to_this_Tsurf_factor, &
-         dlogTsurf_factor, &
 
          relax_irradiation, &
          relax_initial_irradiation, &
@@ -531,9 +516,6 @@
          special_rate_factor, &
          filename_of_special_rate, &
          reaction_for_special_factor,&
-         color_num_files,&
-         color_file_names,&
-         color_num_colors,&
          warn_run_star_extras, &
 
          report_garbage_collection, &
@@ -543,89 +525,50 @@
 
 
       subroutine do_read_star_job(s, filename, ierr)
+         use utils_namelist, only: read_namelist, missing_namelist_error
          use star_private_def
-         use utils_lib
          type (star_info), pointer :: s
          character(*), intent(in) :: filename
          integer, intent(out) :: ierr
-         character (len=strlen) :: star_job_namelist_name
-         star_job_namelist_name = ''
-         ierr = 0
+
          call set_default_star_job_controls
-         call read_star_job_file(s, filename, 1, ierr)
+         call read_namelist(filename, read_star_job_file, "star_job", ierr, missing_namelist_error)
+
+         if (ierr /= 0) return
+         call store_star_job_controls(s)
          call check_star_job_controls(s, ierr)
       end subroutine do_read_star_job
 
+      subroutine read_star_job_file(unit, iostat, iomsg, extra_inlists, extra_inlists_mask)
+         use const_def, only: strlen
+         use utils_namelist, only: max_extra_inlists
 
-      recursive subroutine read_star_job_file(s, filename, level, ierr)
-         use star_private_def
-         use utils_lib
-         character(*), intent(in) :: filename
-         type (star_info), pointer :: s
-         integer, intent(in) :: level
-         integer, intent(out) :: ierr
-         logical, dimension(max_extra_inlists) :: read_extra
-         character (len=strlen), dimension(max_extra_inlists) :: extra
-         integer :: unit, i
+         integer, intent(in) :: unit
+         integer, intent(out) :: iostat
+         character(len=strlen), intent(out) :: iomsg
+         character(len=strlen), dimension(max_extra_inlists), intent(out) :: extra_inlists
+         logical, dimension(max_extra_inlists), intent(out) :: extra_inlists_mask
 
-         ierr = 0
+         integer :: i
 
-         if (level >= 10) then
-            write(*,*) 'ERROR: too many levels of nested extra star_job inlist files'
-            ierr = -1
+         read_extra_star_job_inlist(:) = .false.
+
+         read(unit, nml=star_job, iostat=iostat, iomsg=iomsg)
+
+         if (iostat /= 0) then
             return
          end if
 
-         if (len_trim(filename) > 0) then
-            open(newunit=unit, file=trim(filename), action='read', delim='quote', status='old', iostat=ierr)
-            if (ierr /= 0) then
-               write(*, *) 'Failed to open control namelist file "'//trim(filename)//'"'
-               return
-            end if
-            read(unit, nml=star_job, iostat=ierr)
-            close(unit)
-            if (ierr /= 0) then
-               write(*, *)
-               write(*, *)
-               write(*, *)
-               write(*, *)
-               write(*, '(a)') &
-                  'Failed while trying to read control namelist file: ' // trim(filename)
-               write(*, '(a)') &
-                  'Perhaps the following runtime error message will help you find the problem.'
-               write(*, *)
-               open(newunit=unit, file=trim(filename), action='read', delim='quote', status='old', iostat=ierr)
-               read(unit, nml=star_job)
-               close(unit)
-               return
-            end if
-         end if
-
-         call store_star_job_controls(s, ierr)
-
-         ! recursive calls to read other inlists
          do i=1, max_extra_inlists
-            read_extra(i) = read_extra_star_job_inlist(i)
-            read_extra_star_job_inlist(i) = .false.
-            extra(i) = extra_star_job_inlist_name(i)
-            extra_star_job_inlist_name(i) = 'undefined'
-
-            if (read_extra(i)) then
-               call read_star_job_file(s, extra(i), level+1, ierr)
-               if (ierr /= 0) return
-            end if
+            extra_inlists(i) = extra_star_job_inlist_name(i)
+            extra_inlists_mask(i) = read_extra_star_job_inlist(i)
          end do
-
 
       end subroutine read_star_job_file
 
-
-      subroutine store_star_job_controls(s, ierr)
+      subroutine store_star_job_controls(s)
          use star_private_def
          type (star_info), pointer :: s
-         integer, intent(out) :: ierr
-
-         ierr = 0
 
          s% job% mesa_dir = mesa_dir
          s% job% eosDT_cache_dir = eosDT_cache_dir
@@ -783,7 +726,6 @@
          s% job% fallback_check_total_energy = fallback_check_total_energy
          s% job% remove_fallback_speed_limit = remove_fallback_speed_limit
          s% job% remove_center_set_zero_v_center = remove_center_set_zero_v_center
-         s% job% retain_fallback_at_each_step = retain_fallback_at_each_step
          s% job% limit_center_logP_at_each_step = limit_center_logP_at_each_step
          s% job% remove_center_adjust_L_center = remove_center_adjust_L_center
          s% job% remove_center_logRho_limit = remove_center_logRho_limit
@@ -863,14 +805,6 @@
          s% job% d_opacity_factor = d_opacity_factor
          s% job% relax_opacity_factor = relax_opacity_factor
          s% job% relax_initial_opacity_factor = relax_initial_opacity_factor
-
-         s% job% relax_Tsurf_factor = relax_Tsurf_factor
-         s% job% relax_initial_Tsurf_factor = relax_initial_Tsurf_factor
-         s% job% set_Tsurf_factor = set_Tsurf_factor
-         s% job% set_initial_Tsurf_factor = set_initial_Tsurf_factor
-         s% job% relax_to_this_Tsurf_factor = relax_to_this_Tsurf_factor
-         s% job% set_to_this_Tsurf_factor = set_to_this_Tsurf_factor
-         s% job% dlogTsurf_factor = dlogTsurf_factor
 
          s% job% relax_irradiation = relax_irradiation
          s% job% relax_initial_irradiation = relax_initial_irradiation
@@ -1120,9 +1054,6 @@
          s% job% special_rate_factor = special_rate_factor
          s% job% filename_of_special_rate = filename_of_special_rate
          s% job% reaction_for_special_factor = reaction_for_special_factor
-         s% job% color_num_files = color_num_files
-         s% job% color_file_names = color_file_names
-         s% job% color_num_colors = color_num_colors
 
          s% job% warn_run_star_extras = warn_run_star_extras
          s% job% report_garbage_collection = report_garbage_collection
@@ -1140,8 +1071,6 @@
          special_rate_factor(:) = 1d0
          filename_of_special_rate(:) = ''
          reaction_for_special_factor(:) = ''
-         color_num_colors(:) = 0
-         color_file_names(:) = ''
          include 'star_job.defaults'
          include 'star_job_dev.defaults'
       end subroutine set_default_star_job_controls
@@ -1416,14 +1345,6 @@
          relax_opacity_factor = s% job% relax_opacity_factor
          relax_initial_opacity_factor = s% job% relax_initial_opacity_factor
 
-         relax_Tsurf_factor = s% job% relax_Tsurf_factor
-         relax_initial_Tsurf_factor = s% job% relax_initial_Tsurf_factor
-         set_Tsurf_factor = s% job% set_Tsurf_factor
-         set_initial_Tsurf_factor = s% job% set_initial_Tsurf_factor
-         relax_to_this_Tsurf_factor = s% job% relax_to_this_Tsurf_factor
-         set_to_this_Tsurf_factor = s% job% set_to_this_Tsurf_factor
-         dlogTsurf_factor = s% job% dlogTsurf_factor
-
          relax_irradiation = s% job% relax_irradiation
          relax_initial_irradiation = s% job% relax_initial_irradiation
          set_irradiation = s% job% set_irradiation
@@ -1672,9 +1593,6 @@
          filename_of_special_rate = s% job% filename_of_special_rate
 
          reaction_for_special_factor = s% job% reaction_for_special_factor
-         color_num_files = s% job% color_num_files
-         color_file_names = s% job% color_file_names
-         color_num_colors = s% job% color_num_colors
 
          warn_run_star_extras = s% job% warn_run_star_extras
          report_garbage_collection = s% job% report_garbage_collection
@@ -1726,12 +1644,12 @@
          call set_star_job_controls_for_writing(s, ierr)
          if(ierr/=0) return
 
-         ! Write namelist to temporay file
+         ! Write namelist to temporary file
          open(newunit=iounit,status='scratch')
          write(iounit,nml=star_job)
          rewind(iounit)
 
-         ! Namelists get written in captials
+         ! Namelists get written in capitals
          upper_name = trim(StrUpCase(name))//'='
          val = ''
          ! Search for name inside namelist
@@ -1739,7 +1657,7 @@
             read(iounit,'(A)',iostat=iostat) str
             ind = index(trim(str),trim(upper_name))
             if( ind /= 0 ) then
-               val = str(ind+len_trim(upper_name):len_trim(str)-1) ! Remove final comma and starting =
+               val = str(ind+len_trim(upper_name):len_trim(str)-1)  ! Remove final comma and starting =
                do i=1,len(val)
                   if(val(i:i)=='"') val(i:i) = ' '
                end do
@@ -1773,11 +1691,10 @@
          read(tmp, nml=star_job)
 
          ! Add to star
-         call store_star_job_controls(s, ierr)
+         call store_star_job_controls(s)
          if(ierr/=0) return
 
       end subroutine set_star_job
 
 
       end module star_job_ctrls_io
-

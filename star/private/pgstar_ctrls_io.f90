@@ -2,30 +2,24 @@
 !
 !   Copyright (C) 2010  The MESA Team
 !
-!   MESA is free software; you can use it and/or modify
-!   it under the combined terms and restrictions of the MESA MANIFESTO
-!   and the GNU General Library Public License as published
-!   by the Free Software Foundation; either version 2 of the License,
-!   or (at your option) any later version.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   You should have received a copy of the MESA MANIFESTO along with
-!   this software; if not, it is available at the mesa website:
-!   http://mesa.sourceforge.net/
-!
-!   MESA is distributed in the hope that it will be useful,
+!   This program is distributed in the hope that it will be useful,
 !   but WITHOUT ANY WARRANTY; without even the implied warranty of
 !   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-!   See the GNU Library General Public License for more details.
+!   See the GNU Lesser General Public License for more details.
 !
-!   You should have received a copy of the GNU Library General Public License
-!   along with this software; if not, write to the Free Software
-!   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
       module pgstar_ctrls_io
 
-      use const_def
+      use const_def, only: dp
       use star_private_def
       use star_pgstar
 
@@ -36,10 +30,9 @@
       namelist /pgstar/ &
 
             file_device, &
-            file_extension, &
             file_digits, &
             pgstar_interval, &
-            pause, &
+            pause_flag, &
             pause_interval, &
             pgstar_sleep, &
             clear_history, &
@@ -3064,100 +3057,56 @@
             read_extra_pgstar_inlist, &
             extra_pgstar_inlist_name
 
-
-
-
       contains
 
-
       subroutine read_pgstar(s, filename, ierr)
-         use star_private_def
-         use utils_lib
+         use utils_namelist, only: read_namelist, missing_namelist_warning
+         use star_private_def, only: star_info
          type (star_info), pointer :: s
          character(*), intent(in) :: filename
          integer, intent(out) :: ierr
-         character (len=strlen) :: pgstar_namelist_name
-         pgstar_namelist_name = ''
-         ierr = 0
+
          call set_default_pgstar_controls
-         call read_pgstar_file(s, filename, 1, ierr)
+         call read_namelist(filename, read_pgstar_file, "pgstar", ierr, missing_namelist_warning)
+         if (ierr /= 0) return
+         call store_pgstar_controls(s)
       end subroutine read_pgstar
 
+      subroutine read_pgstar_file(unit, iostat, iomsg, extra_inlists, extra_inlists_mask)
+         use const_def, only: strlen
+         use utils_namelist, only: max_extra_inlists
 
-      recursive subroutine read_pgstar_file(s, filename, level, ierr)
-         use star_private_def
-         use utils_lib
-         character(*), intent(in) :: filename
-         type (star_info), pointer :: s
-         integer, intent(in) :: level
-         integer, intent(out) :: ierr
-         logical, dimension(max_extra_inlists) :: read_extra
-         character (len=strlen), dimension(max_extra_inlists) :: extra
-         integer :: unit, i
+         integer, intent(in) :: unit
+         integer, intent(out) :: iostat
+         character(len=strlen), intent(out) :: iomsg
+         character(len=strlen), dimension(max_extra_inlists), intent(out) :: extra_inlists
+         logical, dimension(max_extra_inlists), intent(out) :: extra_inlists_mask
 
-         ierr = 0
+         integer :: i
 
-         if (level >= 10) then
-            write(*,*) 'ERROR: too many levels of nested extra pgstar inlist files'
-            ierr = -1
+         read_extra_pgstar_inlist(:) = .false.
+
+         read(unit, nml=pgstar, iostat=iostat, iomsg=iomsg)
+
+         if (iostat /= 0) then
             return
          end if
 
-         if (len_trim(filename) > 0) then
-            open(newunit=unit, file=trim(filename), action='read', delim='quote', status='old', iostat=ierr)
-            if (ierr /= 0) then
-               write(*, *) 'Failed to open pgstar namelist file ', trim(filename)
-               return
-            end if
-            read(unit, nml=pgstar, iostat=ierr)
-            close(unit)
-            if (ierr /= 0) then
-               write(*, *)
-               write(*, *)
-               write(*, *)
-               write(*, *)
-               write(*, '(a)') &
-                  'Failed while trying to read pgstar namelist file: ' // trim(filename)
-               write(*, '(a)') &
-                  'Perhaps the following runtime error message will help you find the problem.'
-               write(*, *)
-               open(newunit=unit, file=trim(filename), action='read', delim='quote', status='old', iostat=ierr)
-               read(unit, nml=pgstar)
-               close(unit)
-               return
-            end if
-         end if
-
-         call store_pgstar_controls(s, ierr)
-
-         ! recursive calls to read other inlists
          do i=1, max_extra_inlists
-            read_extra(i) = read_extra_pgstar_inlist(i)
-            read_extra_pgstar_inlist(i) = .false.
-            extra(i) = extra_pgstar_inlist_name(i)
-            extra_pgstar_inlist_name(i) = 'undefined'
-
-            if (read_extra(i)) then
-               call read_pgstar_file(s, extra(i), level+1, ierr)
-               if (ierr /= 0) return
-            end if
+            extra_inlists(i) = extra_pgstar_inlist_name(i)
+            extra_inlists_mask(i) = read_extra_pgstar_inlist(i)
          end do
 
       end subroutine read_pgstar_file
 
-
-      subroutine store_pgstar_controls(s, ierr)
-         use star_private_def
+      subroutine store_pgstar_controls(s)
+         use star_private_def, only: star_info
          type (star_info), pointer :: s
-         integer, intent(out) :: ierr
-
-         ierr = 0
 
          s% pg% file_device = file_device
-         s% pg% file_extension = file_extension
          s% pg% file_digits = file_digits
          s% pg% pgstar_interval = pgstar_interval
-         s% pg% pause = pause
+         s% pg% pause_flag = pause_flag
          s% pg% pause_interval = pause_interval
          s% pg% pgstar_sleep = pgstar_sleep
          s% pg% clear_history = clear_history
@@ -6704,4 +6653,3 @@
       end subroutine set_default_pgstar_controls
 
       end module pgstar_ctrls_io
-

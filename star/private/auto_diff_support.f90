@@ -1,32 +1,26 @@
 ! ***********************************************************************
 !
-!   Copyright (C) 2020  Adam Jermyn, The MESA Team
+!   Copyright (C) 2020  Adam Jermyn & The MESA Team
 !
-!   MESA is free software; you can use it and/or modify
-!   it under the combined terms and restrictions of the MESA MANIFESTO
-!   and the GNU General Library Public License as published
-!   by the Free Software Foundation; either version 2 of the License,
-!   or (at your option) any later version.
+!   This program is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU Lesser General Public License
+!   as published by the Free Software Foundation,
+!   either version 3 of the License, or (at your option) any later version.
 !
-!   You should have received a copy of the MESA MANIFESTO along with
-!   this software; if not, it is available at the mesa website:
-!   http://mesa.sourceforge.net/
-!
-!   MESA is distributed in the hope that it will be useful,
+!   This program is distributed in the hope that it will be useful,
 !   but WITHOUT ANY WARRANTY; without even the implied warranty of
 !   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-!   See the GNU Library General Public License for more details.
+!   See the GNU Lesser General Public License for more details.
 !
-!   You should have received a copy of the GNU Library General Public License
-!   along with this software; if not, write to the Free Software
-!   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+!   You should have received a copy of the GNU Lesser General Public License
+!   along with this program. If not, see <https://www.gnu.org/licenses/>.
 !
 ! ***********************************************************************
 
       module auto_diff_support
 
       use star_private_def
-      use const_def
+      use const_def, only: dp, sqrt_2_div_3
       use auto_diff
 
       implicit none
@@ -42,7 +36,7 @@
          type(auto_diff_real_star_order1), intent(in) :: val_00
          integer :: j
          val_p1%val = val_00%val
-         do j=auto_diff_star_num_vars-2,1,-3 ! p1 gets 00, 00 gets m1, m1 gets 0d0
+         do j=auto_diff_star_num_vars-2,1,-3  ! p1 gets 00, 00 gets m1, m1 gets 0d0
             val_p1%d1Array(j+2) = val_00%d1Array(j+1)
             val_p1%d1Array(j+1) = val_00%d1Array(j)
             val_p1%d1Array(j) = 0d0
@@ -53,7 +47,7 @@
          type(auto_diff_real_star_order1), intent(in) :: val_00
          integer :: j
          val_m1%val = val_00%val
-         do j=1,auto_diff_star_num_vars,3 ! m1 gets 00, 00 gets p1, p1 gets 0d0
+         do j=1,auto_diff_star_num_vars,3  ! m1 gets 00, 00 gets p1, p1 gets 0d0
             val_m1%d1Array(j) = val_00%d1Array(j+1)
             val_m1%d1Array(j+1) = val_00%d1Array(j+2)
             val_m1%d1Array(j+2) = 0d0
@@ -291,6 +285,37 @@
          end if
       end function wrap_d_p1
 
+      function wrap_d_m1_start(s, k) result(d_m1)
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: d_m1
+         integer, intent(in) :: k
+         d_m1 = 0d0
+         if (k > 1) then
+            d_m1 % val = s%rho_start(k-1)
+            d_m1 % d1Array(i_lnd_m1) = s%rho_start(k-1)
+         end if
+      end function wrap_d_m1_start
+
+      function wrap_d_00_start(s, k) result(d_00)
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: d_00
+         integer, intent(in) :: k
+         d_00 = 0d0
+         d_00 % val = s%rho_start(k)
+         d_00 % d1Array(i_lnd_00) = s%rho_start(k)
+      end function wrap_d_00_start
+
+      function wrap_d_p1_start(s, k) result(d_p1)
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: d_p1
+         integer, intent(in) :: k
+         d_p1 = 0d0
+         if (k < s%nz) then
+            d_p1 % val = s%rho_start(k+1)
+            d_p1 % d1Array(i_lnd_p1) = s%rho_start(k+1)
+         end if
+      end function wrap_d_p1_start
+
       function wrap_lnd_m1(s, k) result(lnd_m1)
          type (star_info), pointer :: s
          type(auto_diff_real_star_order1) :: lnd_m1
@@ -374,7 +399,7 @@
          get_etrb_start = pow2(s% w_start(k))
       end function get_etrb_start
 
-      real(dp) function get_RSP2_conv_velocity(s,k) result (cv) ! at face k
+      real(dp) function get_RSP2_conv_velocity(s,k) result (cv)  ! at face k
          type (star_info), pointer :: s
          integer, intent(in) :: k
          real(dp) :: alfa, beta
@@ -958,6 +983,72 @@
          dxh_lnR % d1Array(i_lnR_00) = 1d0
       end function wrap_dxh_lnR
 
+      function wrap_dxh_v_face(s, k) result(dxh_v) ! ! wrap_dxh_v_face_00 technically
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: dxh_v
+         integer, intent(in) :: k
+         if (s% u_flag) then
+            dxh_v = wrap_dxh_u_face(s,k) ! wrap_dxh_u_face_00 technically
+            return
+         end if
+         dxh_v = 0d0
+         dxh_v % val = s% dxh_v(k)
+         dxh_v % d1Array(i_v_00) = 1d0
+      end function wrap_dxh_v_face
+
+
+      function wrap_geff_face(s, k) result(geff)
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: geff, r2
+         integer, intent(in) :: k
+         geff = 0d0
+         r2 = 0d0
+         if (s% include_mlt_in_velocity_time_centering) then
+            r2 = pow2(wrap_opt_time_center_r_00(s,k))
+         else
+            r2 = pow2(wrap_r_00(s,k))
+         end if
+
+         if (s% rotation_flag .and. s% use_gravity_rotation_correction) then
+            geff = s%fp_rot(k)*s%cgrav(k)*s%m_grav(k)/r2
+         else
+            geff = s%cgrav(k)*s%m_grav(k)/r2
+         end if
+
+      end function wrap_geff_face
+
+      subroutine get_face_weights_ad_support(s, k, alfa, beta)
+         type (star_info), pointer :: s
+         integer, intent(in) :: k
+         real(dp), intent(out) :: alfa, beta
+         ! face_value(k) = alfa*cell_value(k) + beta*cell_value(k-1)
+         if (k == 1) call mesa_error(__FILE__,__LINE__,'bad k==1 for get_face_weights')
+         alfa = s% dq(k-1)/(s% dq(k-1) + s% dq(k))
+         beta = 1d0 - alfa
+      end subroutine get_face_weights_ad_support
+
+      function wrap_dxh_u_face(s, k) result(dxh_u_face) ! wrap_dxh_u_face_00 technically
+        type (star_info), pointer                       :: s
+        integer, intent(in)                             :: k
+        type(auto_diff_real_star_order1)                :: dxh_u_face
+        real(dp)                                        :: alpha, beta
+
+        dxh_u_face = 0d0
+        if (k == 1) then
+          ! at the inner boundary just take the first cell‐update
+          dxh_u_face%val            = s%dxh_u(1)
+          dxh_u_face%d1Array(i_v_00) = 1d0
+        else
+          ! get mass weighted face interpolation coefficients
+          call get_face_weights_ad_support(s, k, alpha, beta)
+          dxh_u_face%val            = alpha*s%dxh_u(k) + beta*s%dxh_u(k-1)
+          ! derivatives wrt the two neighbouring dxh_u's
+          dxh_u_face%d1Array(i_v_00) = alpha
+          dxh_u_face%d1Array(i_v_m1) = beta
+        end if
+      end function wrap_dxh_u_face
+
+
       function wrap_u_face_m1(s, k) result(v_m1)
          type (star_info), pointer :: s
          type(auto_diff_real_star_order1) :: v_m1
@@ -1143,6 +1234,38 @@
             ! v_center is a constant
          end if
       end function wrap_u_p1
+
+      function wrap_opt_time_center_u_m1(s, k) result(v_tc)
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: v_tc
+         integer, intent(in) :: k
+         v_tc = 0d0
+         if (k == 1) return
+         v_tc = wrap_u_m1(s,k)
+         if (s% using_velocity_time_centering) &
+            v_tc = 0.5d0*(v_tc + s% u_start(k-1))
+      end function wrap_opt_time_center_u_m1
+
+      function wrap_opt_time_center_u_00(s, k) result(v_tc)
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: v_tc
+         integer, intent(in) :: k
+         v_tc = wrap_u_00(s,k)
+         if (s% using_velocity_time_centering) &
+            v_tc = 0.5d0*(v_tc + s% u_start(k))
+      end function wrap_opt_time_center_u_00
+
+      function wrap_opt_time_center_u_p1(s, k) result(v_tc)
+         type (star_info), pointer :: s
+         type(auto_diff_real_star_order1) :: v_tc
+         integer, intent(in) :: k
+         v_tc = 0d0
+         if (k == s%nz) return
+         v_tc = wrap_u_p1(s,k)
+         if (s% using_velocity_time_centering) &
+            v_tc = 0.5d0*(v_tc + s% u_start(k+1))
+      end function wrap_opt_time_center_u_p1
+
 
       function wrap_Hp_m1(s, k) result(Hp_m1)
          type (star_info), pointer :: s
@@ -1333,6 +1456,5 @@
             xtra2_p1 % d1Array(i_xtra2_p1) = 1d0
          end if
       end function wrap_xtra2_p1
-
 
 end module auto_diff_support
